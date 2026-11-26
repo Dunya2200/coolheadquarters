@@ -123,6 +123,9 @@
         <path d="M8.75 16.5a4.75 4.75 0 0 1 6.5 0M5.5 12.75a9.25 9.25 0 0 1 4.25-2.1M14.5 10.65a9.25 9.25 0 0 1 4 2.1M2.75 9a13.75 13.75 0 0 1 4.1-2.55M11.6 5.65c3.55-.1 7.05 1.05 9.65 3.35" />
         <circle cx="12" cy="19.5" r="0.85" fill="currentColor" stroke="none" />
       </symbol>
+      <symbol id="icon-chevron-down" viewBox="0 0 24 24">
+        <path d="M6.5 9.5 12 15l5.5-5.5" />
+      </symbol>
     </defs>
   </svg>
 
@@ -144,6 +147,7 @@
         </a>
 
         <div class="top-nav__links">
+          <span class="top-nav__indicator" id="top-nav-indicator" aria-hidden="true"></span>
           <a href="#overview" class="lg-nav-item is-active" data-nav-section="overview">Сводка</a>
           <a href="#duties" class="lg-nav-item" data-nav-section="duties">Дежурные</a>
           <a href="#notices" class="lg-nav-item" data-nav-section="notices">Объявления</a>
@@ -197,7 +201,7 @@
               <h3>Погода на завтра · Москва</h3>
               <p class="card-subtitle" id="weather-updated-label">Проверка прогноза...</p>
             </div>
-            <button type="button" class="btn-icon-soft" id="weather-refresh-btn" aria-label="Обновить прогноз погоды">
+            <button type="button" class="btn-icon-soft lg-surface lg-btn-glass" id="weather-refresh-btn" data-lg-refract data-lg-bezel="14" aria-label="Обновить прогноз погоды">
               <svg class="icon" aria-hidden="true">
                 <use href="#icon-refresh"></use>
               </svg>
@@ -217,7 +221,7 @@
                   <span>Цитата на линейку</span>
                 </span>
               </div>
-              <button type="button" class="btn-icon-soft" id="quote-refresh-btn" aria-label="Обновить цитату на линейку">
+              <button type="button" class="btn-icon-soft lg-surface lg-btn-glass" id="quote-refresh-btn" data-lg-refract data-lg-bezel="14" aria-label="Обновить цитату на линейку">
                 <svg class="icon" aria-hidden="true">
                   <use href="#icon-refresh"></use>
                 </svg>
@@ -233,7 +237,9 @@
               <h3>Дежурство сегодня</h3>
               <p class="card-subtitle" id="today-weekday-badge">Определение дня...</p>
             </div>
-            <button type="button" class="btn-secondary btn-compact" id="edit-today-duty-btn">Изменить</button>
+            <button type="button" class="btn-secondary btn-compact lg-surface lg-btn-glass" id="edit-today-duty-btn" data-lg-refract data-lg-bezel="14">
+              <span>Изменить</span>
+            </button>
           </div>
           <div id="today-duty-body" class="today-duty-body"></div>
 
@@ -259,7 +265,7 @@
           </svg>
           <h2 id="duties-heading" class="section-title">График дежурных на неделю</h2>
         </div>
-        <div class="segmented" role="group" aria-label="Количество учебных дней в неделе">
+        <div class="segmented lg-surface lg-btn-glass" data-lg-refract data-lg-bezel="12" role="group" aria-label="Количество учебных дней в неделе">
           <button type="button" class="segmented__btn is-active" id="workdays-5-btn" data-workdays="5" aria-pressed="true">5 дней</button>
           <button type="button" class="segmented__btn" id="workdays-6-btn" data-workdays="6" aria-pressed="false">6 дней</button>
         </div>
@@ -277,7 +283,7 @@
             </svg>
             <h2 id="notices-heading" class="section-title">Объявления класса</h2>
           </div>
-          <div class="segmented" role="group" aria-label="Фильтр объявлений">
+          <div class="segmented lg-surface lg-btn-glass" data-lg-refract data-lg-bezel="12" role="group" aria-label="Фильтр объявлений">
             <button type="button" class="segmented__btn is-active" id="notices-active-btn" data-notice-filter="active" aria-pressed="true">
               <span>Актуальные</span>
               <span id="notices-active-count" class="count-badge">0</span>
@@ -299,9 +305,12 @@
             </svg>
             <h2 id="birthdays-heading" class="section-title">Дни рождения</h2>
           </div>
-          <div class="month-select-wrap">
+          <div class="month-select-wrap select-wrap lg-surface lg-btn-glass" data-lg-refract data-lg-bezel="12">
             <label class="sr-only" for="birthday-month-select">Выберите месяц</label>
             <select id="birthday-month-select" class="month-select" aria-label="Месяц для списка дней рождения"></select>
+            <svg class="icon icon--sm select-chevron" aria-hidden="true">
+              <use href="#icon-chevron-down"></use>
+            </svg>
           </div>
         </div>
         <div id="birthdays-list" class="birthdays-list"></div>
@@ -319,8 +328,12 @@
       </div>
       <div class="footer-controls">
         <div class="footer-actions">
-          <button type="button" class="btn-secondary" id="clear-data-btn">Очистить данные</button>
-          <button type="button" class="btn-secondary" id="restore-demo-btn">Восстановить демо</button>
+          <button type="button" class="btn-secondary lg-surface lg-btn-glass" id="clear-data-btn" data-lg-refract data-lg-bezel="14">
+            <span>Очистить данные</span>
+          </button>
+          <button type="button" class="btn-secondary lg-surface lg-btn-glass" id="restore-demo-btn" data-lg-refract data-lg-bezel="14">
+            <span>Восстановить демо</span>
+          </button>
         </div>
         <p class="footer-meta">Классный штаб · P05 · Москва (55.75, 37.62) · Хранение локально в браузере</p>
       </div>
@@ -404,14 +417,19 @@
         <form id="duty-form" class="sheet-form" novalidate hidden>
           <div class="field-group">
             <label class="field-label" for="duty-weekday-select">Учебный день недели</label>
-            <select id="duty-weekday-select" class="field-input" aria-describedby="duty-weekday-error">
-              <option value="1">Понедельник</option>
-              <option value="2">Вторник</option>
-              <option value="3">Среда</option>
-              <option value="4">Четверг</option>
-              <option value="5">Пятница</option>
-              <option value="6">Суббота (6-й день)</option>
-            </select>
+            <div class="select-wrap select-wrap--field">
+              <select id="duty-weekday-select" class="field-input field-select" aria-describedby="duty-weekday-error">
+                <option value="1">Понедельник</option>
+                <option value="2">Вторник</option>
+                <option value="3">Среда</option>
+                <option value="4">Четверг</option>
+                <option value="5">Пятница</option>
+                <option value="6">Суббота (6-й день)</option>
+              </select>
+              <svg class="icon icon--sm select-chevron" aria-hidden="true">
+                <use href="#icon-chevron-down"></use>
+              </svg>
+            </div>
             <p id="duty-weekday-error" class="field-error" hidden></p>
           </div>
 
@@ -448,7 +466,12 @@
           <div class="field-row-split">
             <div class="field-group">
               <label class="field-label" for="birthday-month-input">Месяц</label>
-              <select id="birthday-month-input" class="field-input" aria-describedby="birthday-date-error"></select>
+              <div class="select-wrap select-wrap--field">
+                <select id="birthday-month-input" class="field-input field-select" aria-describedby="birthday-date-error"></select>
+                <svg class="icon icon--sm select-chevron" aria-hidden="true">
+                  <use href="#icon-chevron-down"></use>
+                </svg>
+              </div>
             </div>
             <div class="field-group">
               <label class="field-label" for="birthday-day-input">Число</label>

@@ -50,7 +50,9 @@ function initLiquidGlassEngine() {
   );
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const snellLut = buildSnellLUT(1.5168, 0.85, 128);
-  const instances = new Map();
+  const filterCache = new Map();
+  const observedEls = new WeakSet();
+  const pointerBoundEls = new WeakSet();
 
   function makeDisplacementMap(w, h, radius, bezel) {
     const W = Math.max(2, Math.round(w));
@@ -114,7 +116,7 @@ function initLiquidGlassEngine() {
     ctx.putImageData(img, 0, 0);
     return {
       dataUrl: canvas.toDataURL("image/png"),
-      scale: Math.round(b * 1.05)
+      scale: Math.round(b * 1.35)
     };
   }
 
@@ -135,9 +137,14 @@ function initLiquidGlassEngine() {
       return;
     }
 
-    let rec = instances.get(el);
+    const cs = getComputedStyle(el);
+    const radius = Math.round(parseFloat(cs.borderTopLeftRadius) || 24);
+    const bezel = Number(el.dataset.lgBezel) || 16;
+    const cacheKey = `${w}x${h}x${radius}x${bezel}`;
+
+    let rec = filterCache.get(cacheKey);
     if (!rec) {
-      const id = `lg-f-${instances.size + 1}`;
+      const id = `lg-f-${filterCache.size + 1}`;
       const filter = document.createElementNS(SVG_NS, "filter");
       filter.setAttribute("id", id);
       filter.setAttribute("filterUnits", "userSpaceOnUse");
@@ -146,6 +153,8 @@ function initLiquidGlassEngine() {
       const feImg = document.createElementNS(SVG_NS, "feImage");
       feImg.setAttribute("x", "0");
       feImg.setAttribute("y", "0");
+      feImg.setAttribute("width", String(w));
+      feImg.setAttribute("height", String(h));
       feImg.setAttribute("preserveAspectRatio", "none");
       feImg.setAttribute("result", "map");
 
@@ -155,28 +164,18 @@ function initLiquidGlassEngine() {
       feDisp.setAttribute("xChannelSelector", "R");
       feDisp.setAttribute("yChannelSelector", "G");
 
+      const { dataUrl, scale } = makeDisplacementMap(w, h, radius, bezel);
+      filter.setAttribute("x", "0");
+      filter.setAttribute("y", "0");
+      filter.setAttribute("width", String(w));
+      filter.setAttribute("height", String(h));
+      feImg.setAttribute("href", dataUrl);
+      feDisp.setAttribute("scale", String(scale));
+
       filter.append(feImg, feDisp);
       defs.appendChild(filter);
-      rec = { id, filter, feImg, feDisp, lastW: 0, lastH: 0 };
-      instances.set(el, rec);
-    }
-
-    if (rec.lastW !== w || rec.lastH !== h) {
-      const cs = getComputedStyle(el);
-      const radius = parseFloat(cs.borderTopLeftRadius) || 24;
-      const bezel = Number(el.dataset.lgBezel) || 20;
-      const { dataUrl, scale } = makeDisplacementMap(w, h, radius, bezel);
-
-      rec.filter.setAttribute("x", "0");
-      rec.filter.setAttribute("y", "0");
-      rec.filter.setAttribute("width", String(w));
-      rec.filter.setAttribute("height", String(h));
-      rec.feImg.setAttribute("width", String(w));
-      rec.feImg.setAttribute("height", String(h));
-      rec.feImg.setAttribute("href", dataUrl);
-      rec.feDisp.setAttribute("scale", String(scale));
-      rec.lastW = w;
-      rec.lastH = h;
+      rec = { id, filter, feImg, feDisp };
+      filterCache.set(cacheKey, rec);
     }
 
     el.style.setProperty("--lg-filter-url", `url(#${rec.id})`);
@@ -199,13 +198,9 @@ function initLiquidGlassEngine() {
     }
   });
 
-  document.querySelectorAll("[data-lg-refract]").forEach((el) => {
-    resizeObserver.observe(el);
-    updateElementFilter(el);
-  });
-
-  // Интерактивный блик по движению указателя (отключается при reduced-motion)
-  document.querySelectorAll(".lg-surface").forEach((el) => {
+  function bindPointerGlint(el) {
+    if (pointerBoundSet.has(el)) return;
+    pointerBoundSet.add(el);
     let pointerRaf = 0;
     el.addEventListener(
       "pointermove",
@@ -223,7 +218,20 @@ function initLiquidGlassEngine() {
       },
       { passive: true }
     );
-  });
+  }
+
+  function refreshElements() {
+    document.querySelectorAll("[data-lg-refract]").forEach((el) => {
+      if (!observedEls.has(el)) {
+        observedEls.add(el);
+        resizeObserver.observe(el);
+      }
+      updateElementFilter(el);
+    });
+    document.querySelectorAll(".lg-surface").forEach(bindPointerGlint);
+  }
+
+  refreshElements();
 
   // Прогрессивный край прокрутки
   const edgeTop = document.querySelector(".lg-scroll-edge-top");
@@ -235,55 +243,121 @@ function initLiquidGlassEngine() {
     updateEdge();
   }
 
-  // Морфинг активной пилюли в верхней навигации
+  // Плавное скольжение активной пилюли без startViewTransition (исключает мигание при скролле)
+  const linksWrap = document.querySelector(".top-nav__links");
+  const navIndicator = document.getElementById("top-nav-indicator");
   const navItems = Array.from(document.querySelectorAll(".top-nav__links .lg-nav-item"));
-  function activateNavTab(nextItem) {
-    if (!nextItem || nextItem.classList.contains("is-active")) return;
-    const apply = () => {
-      navItems.forEach((item) => item.classList.remove("is-active"));
-      nextItem.classList.add("is-active");
-    };
-    if (!document.startViewTransition || reducedMotion.matches) {
-      apply();
-      return;
+  let navScrollLockUntil = 0;
+  let preferredBottomTab = "notices";
+
+  function moveNavIndicator(targetLink, instant = false) {
+    if (!linksWrap || !navIndicator || !targetLink) return;
+    const wrapRect = linksWrap.getBoundingClientRect();
+    if (wrapRect.width === 0) return;
+
+    const linkRect = targetLink.getBoundingClientRect();
+    const left = Math.max(0, Math.round(linkRect.left - wrapRect.left));
+    const right = Math.max(0, Math.round(wrapRect.right - linkRect.right));
+
+    if (instant) {
+      navIndicator.style.transition = "none";
     }
-    document.startViewTransition(apply);
+    navIndicator.style.setProperty("--ind-left", `${left}px`);
+    navIndicator.style.setProperty("--ind-right", `${right}px`);
+    if (instant) {
+      void navIndicator.offsetWidth;
+      navIndicator.style.transition = "";
+    }
+  }
+
+  function activateNavTab(nextItem, instant = false) {
+    if (!nextItem) return;
+    navItems.forEach((item) => item.classList.remove("is-active"));
+    nextItem.classList.add("is-active");
+    moveNavIndicator(nextItem, instant);
   }
 
   navItems.forEach((link) => {
     link.addEventListener("click", () => {
+      navScrollLockUntil = performance.now() + 800;
+      preferredBottomTab = link.dataset.navSection === "birthdays" ? "birthdays" : "notices";
       activateNavTab(link);
     });
   });
 
-  // Наблюдение за секциями для обновления активной вкладки при прокрутке
-  if ("IntersectionObserver" in window && navItems.length > 0) {
-    const sectionObserver = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (!visible) return;
-        const targetId = visible.target.id;
-        const match = navItems.find((item) => item.dataset.navSection === targetId);
-        if (match) activateNavTab(match);
-      },
-      { rootMargin: "-25% 0px -55% 0px", threshold: [0.1, 0.35] }
-    );
+  function updateActiveNavFromScroll() {
+    if (navItems.length === 0) return;
+    if (performance.now() < navScrollLockUntil) return;
 
-    ["overview", "duties", "notices", "birthdays"].forEach((id) => {
-      const section = document.getElementById(id);
-      if (section) sectionObserver.observe(section);
+    const dutiesEl = document.getElementById("duties");
+    const noticesEl = document.getElementById("notices");
+    const birthdaysEl = document.getElementById("birthdays");
+    const anchorY = window.scrollY + 140;
+
+    const dutiesTop = dutiesEl ? dutiesEl.getBoundingClientRect().top + window.scrollY : Infinity;
+    const noticesTop = noticesEl ? noticesEl.getBoundingClientRect().top + window.scrollY : Infinity;
+    const birthdaysTop = birthdaysEl
+      ? birthdaysEl.getBoundingClientRect().top + window.scrollY
+      : Infinity;
+
+    let activeSection = "overview";
+    if (anchorY < dutiesTop) {
+      activeSection = "overview";
+      preferredBottomTab = "notices";
+    } else if (anchorY < noticesTop) {
+      activeSection = "duties";
+      preferredBottomTab = "notices";
+    } else if (window.innerWidth < 1024 && anchorY >= birthdaysTop) {
+      activeSection = "birthdays";
+    } else {
+      activeSection = window.innerWidth >= 1024 ? preferredBottomTab : "notices";
+    }
+
+    const match = navItems.find((item) => item.dataset.navSection === activeSection);
+    if (match && !match.classList.contains("is-active")) {
+      activateNavTab(match);
+    }
+  }
+
+  let scrollSpyRaf = 0;
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (scrollSpyRaf) return;
+      scrollSpyRaf = requestAnimationFrame(() => {
+        scrollSpyRaf = 0;
+        updateActiveNavFromScroll();
+      });
+    },
+    { passive: true }
+  );
+
+  window.addEventListener(
+    "resize",
+    () => {
+      const current = navItems.find((item) => item.classList.contains("is-active")) || navItems[0];
+      moveNavIndicator(current, true);
+    },
+    { passive: true }
+  );
+
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      const current = navItems.find((item) => item.classList.contains("is-active")) || navItems[0];
+      moveNavIndicator(current, true);
     });
   }
 
+  const initialActive = navItems.find((item) => item.classList.contains("is-active")) || navItems[0];
+  moveNavIndicator(initialActive, true);
+
   function syncAll() {
-    document.querySelectorAll("[data-lg-refract]").forEach(updateElementFilter);
+    refreshElements();
   }
 
   reducedMedia.addEventListener("change", syncAll);
 
-  return { syncAll };
+  return { syncAll, refreshElements };
 }
 
 /* =========================================================
@@ -1079,8 +1153,12 @@ function initApp() {
 
       const editBtn = document.createElement("button");
       editBtn.type = "button";
-      editBtn.className = "btn-secondary btn-compact";
-      editBtn.textContent = "Назначить";
+      editBtn.className = "btn-secondary btn-compact lg-surface lg-btn-glass";
+      editBtn.dataset.lgRefract = "";
+      editBtn.dataset.lgBezel = "14";
+      const editBtnLabel = document.createElement("span");
+      editBtnLabel.textContent = "Назначить";
+      editBtn.appendChild(editBtnLabel);
       editBtn.setAttribute(
         "aria-label",
         `Назначить дежурных на ${WEEKDAY_NAMES[weekday].toLowerCase()}`
@@ -1092,6 +1170,7 @@ function initApp() {
       card.append(head, list, editBtn);
       dutiesGridEl.appendChild(card);
     }
+    lgEngine.refreshElements();
   }
 
   function renderNotices() {
@@ -1153,22 +1232,24 @@ function initApp() {
 
       const editBtn = document.createElement("button");
       editBtn.type = "button";
-      editBtn.className = "btn-secondary btn-compact";
-      editBtn.append(
-        createSvgIcon("icon-edit", "icon--sm"),
-        document.createTextNode("Изменить")
-      );
+      editBtn.className = "btn-secondary btn-compact lg-surface lg-btn-glass";
+      editBtn.dataset.lgRefract = "";
+      editBtn.dataset.lgBezel = "14";
+      const editLabel = document.createElement("span");
+      editLabel.textContent = "Изменить";
+      editBtn.append(createSvgIcon("icon-edit", "icon--sm"), editLabel);
       editBtn.addEventListener("click", () => {
         openSheet("notice", { notice }, editBtn);
       });
 
       const archiveBtn = document.createElement("button");
       archiveBtn.type = "button";
-      archiveBtn.className = "btn-secondary btn-compact";
-      archiveBtn.append(
-        createSvgIcon("icon-archive", "icon--sm"),
-        document.createTextNode(notice.archived ? "Вернуть" : "В архив")
-      );
+      archiveBtn.className = "btn-secondary btn-compact lg-surface lg-btn-glass";
+      archiveBtn.dataset.lgRefract = "";
+      archiveBtn.dataset.lgBezel = "14";
+      const archiveLabel = document.createElement("span");
+      archiveLabel.textContent = notice.archived ? "Вернуть" : "В архив";
+      archiveBtn.append(createSvgIcon("icon-archive", "icon--sm"), archiveLabel);
       archiveBtn.addEventListener("click", () => {
         state.notices = state.notices.map((item) =>
           item.id === notice.id ? { ...item, archived: !item.archived } : item
@@ -1185,11 +1266,12 @@ function initApp() {
 
       const deleteBtn = document.createElement("button");
       deleteBtn.type = "button";
-      deleteBtn.className = "btn-secondary btn-compact btn-danger-soft";
-      deleteBtn.append(
-        createSvgIcon("icon-trash", "icon--sm"),
-        document.createTextNode("Удалить")
-      );
+      deleteBtn.className = "btn-secondary btn-compact btn-danger-soft lg-surface lg-btn-glass";
+      deleteBtn.dataset.lgRefract = "";
+      deleteBtn.dataset.lgBezel = "14";
+      const deleteLabel = document.createElement("span");
+      deleteLabel.textContent = "Удалить";
+      deleteBtn.append(createSvgIcon("icon-trash", "icon--sm"), deleteLabel);
       deleteBtn.addEventListener("click", () => {
         state.notices = state.notices.filter((item) => item.id !== notice.id);
         window.notices = state.notices;
@@ -1204,6 +1286,7 @@ function initApp() {
     });
 
     latestNoticeId = null;
+    lgEngine.refreshElements();
   }
 
   function renderBirthdays(now = new Date()) {
@@ -1257,7 +1340,9 @@ function initApp() {
 
       const deleteBtn = document.createElement("button");
       deleteBtn.type = "button";
-      deleteBtn.className = "btn-icon-soft btn-danger-soft";
+      deleteBtn.className = "btn-icon-soft btn-danger-soft lg-surface lg-btn-glass";
+      deleteBtn.dataset.lgRefract = "";
+      deleteBtn.dataset.lgBezel = "14";
       deleteBtn.setAttribute("aria-label", `Удалить день рождения: ${person.name}`);
       deleteBtn.appendChild(createSvgIcon("icon-trash", "icon--sm"));
       deleteBtn.addEventListener("click", () => {
@@ -1271,6 +1356,7 @@ function initApp() {
       item.append(info, actions);
       birthdaysListEl.appendChild(item);
     });
+    lgEngine.refreshElements();
   }
 
   function renderAll() {
