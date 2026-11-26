@@ -52,7 +52,7 @@
   --lg-fill-thick: color-mix(in oklab, var(--lg-surface) 78%, transparent);
   --lg-blur-regular: 14px;
   --lg-blur-thick: 24px;
-  --lg-blur-refract: 1.5px;
+  --lg-blur-refract: 2.5px;
   --lg-saturate: 160%;
 
   --lg-radius-outer: 28px;
@@ -171,7 +171,8 @@ html[data-theme="dark"] {
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 84px;
+  scroll-padding-top: 88px;
+  scroll-padding-bottom: 96px;
 }
 
 body {
@@ -241,7 +242,7 @@ textarea {
   z-index: 40;
   display: flex;
   justify-content: center;
-  padding: 0 12px;
+  padding: 0 8px;
   pointer-events: none;
 }
 
@@ -252,20 +253,21 @@ textarea {
 
 .top-nav__inner {
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
 }
 
 .brand-link {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
   min-height: 40px;
-  padding: 0 8px 0 4px;
+  padding: 0 6px 0 4px;
   border-radius: var(--radius-pill);
   text-decoration: none;
   color: inherit;
   font-weight: 700;
-  font-size: 15px;
+  font-size: 14px;
   letter-spacing: -0.02em;
   white-space: nowrap;
   transition: opacity 160ms ease;
@@ -277,14 +279,18 @@ textarea {
 }
 
 .brand-logo {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   flex-shrink: 0;
 }
 
 .brand-name {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.brand-name--full {
+  display: none;
 }
 
 .top-nav__links {
@@ -453,6 +459,14 @@ html[data-theme="dark"] .theme-icon-sun {
 /* =========================================================
    СЛОЙ 1: СПЛОШНЫЕ КОНТЕНТНЫЕ КАРТОЧКИ (БЕЗ СТЕКЛА)
    ========================================================= */
+
+.content-card,
+.duty-day-card,
+.notice-card,
+.birthday-item {
+  scroll-margin-top: 88px;
+  scroll-margin-bottom: 96px;
+}
 
 .content-card {
   background: var(--bg-card);
@@ -1180,13 +1194,10 @@ html[data-theme="dark"] .theme-icon-sun {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 0 14px;
 }
 
 .dock-secondary-btn {
   gap: 6px;
-  padding: 0 10px;
-  font-size: 14px;
 }
 
 .dock-secondary-btn__icon {
@@ -1226,13 +1237,13 @@ html[data-theme="dark"] .theme-icon-sun {
 .sheet-panel {
   pointer-events: auto;
   width: min(100%, 540px);
-  max-height: 86dvh;
-  overflow-y: auto;
 }
 
 .sheet-panel__inner {
   position: relative;
   z-index: 2;
+  max-height: 86dvh;
+  overflow-y: auto;
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -1346,11 +1357,32 @@ html[data-theme="dark"] .theme-icon-sun {
    АДАПТИВНЫЕ БРЕЙКПОИНТЫ (ТОЛЬКО MIN-WIDTH)
    ========================================================= */
 
-@media (min-width: 480px) {
-  .dock-secondary-btn {
-    padding: 0 14px;
+@media (min-width: 390px) {
+  .site-header {
+    padding: 0 12px;
   }
 
+  .brand-link {
+    gap: 8px;
+    font-size: 15px;
+    padding: 0 8px 0 4px;
+  }
+
+  .brand-logo {
+    width: 28px;
+    height: 28px;
+  }
+
+  .brand-name--short {
+    display: none;
+  }
+
+  .brand-name--full {
+    display: inline;
+  }
+}
+
+@media (min-width: 480px) {
   .dock-secondary-btn__icon {
     display: block;
   }
@@ -1604,6 +1636,27 @@ html[data-theme="dark"] .theme-icon-sun {
 .lg-btn-prominent:focus-visible {
   outline: 2px solid var(--brand-link);
   outline-offset: 2px;
+}
+
+.action-dock .dock-primary-btn {
+  padding: 0 12px;
+  font-size: 14px;
+}
+
+.action-dock .dock-secondary-btn {
+  padding: 0 10px;
+  font-size: 14px;
+}
+
+@media (min-width: 480px) {
+  .action-dock .dock-primary-btn {
+    padding: 0 18px;
+    font-size: 15px;
+  }
+
+  .action-dock .dock-secondary-btn {
+    padding: 0 14px;
+  }
 }
 
 /* Прогрессивный край прокрутки (вне предков с overflow/opacity/mask) */
