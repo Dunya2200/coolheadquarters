@@ -32,7 +32,7 @@
     <defs id="lg-filter-defs"></defs>
   </svg>
 
-  <!-- Единый векторный спрайт (22 иконки в геометрии Apple SF Symbols, без эмодзи) -->
+  <!-- Единый векторный спрайт (24 иконки в геометрии Apple SF Symbols, без эмодзи) -->
   <svg class="icon-sprite" width="0" height="0" aria-hidden="true" style="position: absolute; width: 0; height: 0; pointer-events: none; overflow: hidden;">
     <defs>
       <symbol id="icon-weather-sun" viewBox="0 0 24 24">
@@ -125,6 +125,9 @@
       </symbol>
       <symbol id="icon-chevron-down" viewBox="0 0 24 24">
         <path d="M6.5 9.5 12 15l5.5-5.5" />
+      </symbol>
+      <symbol id="icon-check" viewBox="0 0 24 24">
+        <path d="M5.5 12.5l4.25 4.25L18.5 7.5" />
       </symbol>
     </defs>
   </svg>
@@ -305,12 +308,15 @@
             </svg>
             <h2 id="birthdays-heading" class="section-title">Дни рождения</h2>
           </div>
-          <div class="month-select-wrap select-wrap lg-surface lg-btn-glass" data-lg-refract data-lg-bezel="12">
-            <label class="sr-only" for="birthday-month-select">Выберите месяц</label>
-            <select id="birthday-month-select" class="month-select" aria-label="Месяц для списка дней рождения"></select>
-            <svg class="icon icon--sm select-chevron" aria-hidden="true">
-              <use href="#icon-chevron-down"></use>
-            </svg>
+          <div class="glass-select glass-select--month" data-glass-select="birthday-month">
+            <label class="sr-only" for="birthday-month-trigger">Выберите месяц</label>
+            <select id="birthday-month-select" class="sr-only" tabindex="-1" aria-hidden="true"></select>
+            <button type="button" id="birthday-month-trigger" class="glass-select__trigger month-select-trigger lg-surface lg-btn-glass" data-lg-refract data-lg-bezel="12" role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-controls="glass-select-listbox" aria-label="Месяц для списка дней рождения">
+              <span class="glass-select__value"></span>
+              <svg class="icon icon--sm glass-select__chevron" aria-hidden="true">
+                <use href="#icon-chevron-down"></use>
+              </svg>
+            </button>
           </div>
         </div>
         <div id="birthdays-list" class="birthdays-list"></div>
@@ -416,9 +422,9 @@
         <!-- Форма 2: Назначение дежурных -->
         <form id="duty-form" class="sheet-form" novalidate hidden>
           <div class="field-group">
-            <label class="field-label" for="duty-weekday-select">Учебный день недели</label>
-            <div class="select-wrap select-wrap--field">
-              <select id="duty-weekday-select" class="field-input field-select" aria-describedby="duty-weekday-error">
+            <label class="field-label" for="duty-weekday-trigger">Учебный день недели</label>
+            <div class="glass-select glass-select--field" data-glass-select="duty-weekday">
+              <select id="duty-weekday-select" class="sr-only" tabindex="-1" aria-hidden="true">
                 <option value="1">Понедельник</option>
                 <option value="2">Вторник</option>
                 <option value="3">Среда</option>
@@ -426,9 +432,12 @@
                 <option value="5">Пятница</option>
                 <option value="6">Суббота (6-й день)</option>
               </select>
-              <svg class="icon icon--sm select-chevron" aria-hidden="true">
-                <use href="#icon-chevron-down"></use>
-              </svg>
+              <button type="button" id="duty-weekday-trigger" class="field-input glass-select__trigger glass-select__trigger--field" role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-controls="glass-select-listbox" aria-describedby="duty-weekday-error">
+                <span class="glass-select__value">Понедельник</span>
+                <svg class="icon icon--sm glass-select__chevron" aria-hidden="true">
+                  <use href="#icon-chevron-down"></use>
+                </svg>
+              </button>
             </div>
             <p id="duty-weekday-error" class="field-error" hidden></p>
           </div>
@@ -465,12 +474,15 @@
 
           <div class="field-row-split">
             <div class="field-group">
-              <label class="field-label" for="birthday-month-input">Месяц</label>
-              <div class="select-wrap select-wrap--field">
-                <select id="birthday-month-input" class="field-input field-select" aria-describedby="birthday-date-error"></select>
-                <svg class="icon icon--sm select-chevron" aria-hidden="true">
-                  <use href="#icon-chevron-down"></use>
-                </svg>
+              <label class="field-label" for="birthday-month-input-trigger">Месяц</label>
+              <div class="glass-select glass-select--field" data-glass-select="birthday-form-month">
+                <select id="birthday-month-input" class="sr-only" tabindex="-1" aria-hidden="true"></select>
+                <button type="button" id="birthday-month-input-trigger" class="field-input glass-select__trigger glass-select__trigger--field" role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-controls="glass-select-listbox" aria-describedby="birthday-date-error">
+                  <span class="glass-select__value"></span>
+                  <svg class="icon icon--sm glass-select__chevron" aria-hidden="true">
+                    <use href="#icon-chevron-down"></use>
+                  </svg>
+                </button>
               </div>
             </div>
             <div class="field-group">
@@ -485,6 +497,10 @@
         </form>
       </div>
     </div>
+  </div>
+
+  <div id="glass-select-popover" class="lg-surface lg-menu glass-menu" data-lg-refract data-lg-bezel="14" hidden>
+    <ul id="glass-select-listbox" class="glass-menu__list" role="listbox" tabindex="-1"></ul>
   </div>
 
   <div id="status-announcer" class="sr-only" aria-live="polite"></div>

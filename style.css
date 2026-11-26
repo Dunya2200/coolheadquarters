@@ -59,7 +59,7 @@
   --lg-solid-border: rgb(13 13 16 / 0.18);
   --lg-fill-regular: rgb(255 255 255 / 0.24);
   --lg-fill-btn: rgb(255 255 255 / 0.20);
-  --lg-fill-btn-hover: rgb(255 255 255 / 0.38);
+  --lg-fill-menu: rgb(255 255 255 / 0.85);
   --lg-fill-thick: rgb(255 255 255 / 0.66);
 
   --lg-blur-regular: 10px;
@@ -84,16 +84,15 @@
     var(--lg-rim-flank) 68%,
     var(--lg-rim-bottom) 100%
   );
-  --lg-glint-pointer: rgb(255 255 255 / 0.45);
-  --lg-glint-diag: rgb(255 255 255 / 0.26);
   --lg-nav-hover-bg: rgb(13 13 16 / 0.06);
   --lg-nav-active-bg: rgb(13 13 16 / 0.12);
   --lg-nav-active-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
-  --lg-btn-prominent-bg: rgb(17 17 20 / 0.86);
-  --lg-btn-prominent-hover: rgb(17 17 20 / 0.96);
+  --lg-btn-prominent-bg: rgb(17 17 20 / 0.88);
   --lg-btn-prominent-ink: #ffffff;
   --lg-shadow-lift: 0 12px 32px -8px rgb(0 0 0 / 0.16), 0 2px 6px rgb(0 0 0 / 0.06);
   --lg-shadow-btn: 0 4px 14px -4px rgb(0 0 0 / 0.12), 0 1px 2px rgb(0 0 0 / 0.06);
+  --lg-shadow-btn-hover: 0 10px 22px -6px rgb(0 0 0 / 0.18), 0 3px 6px rgb(0 0 0 / 0.08);
+  --lg-shadow-menu: 0 18px 42px -10px rgb(0 0 0 / 0.20), 0 4px 12px rgb(0 0 0 / 0.08);
   --lg-backdrop-scrim: rgb(13 13 16 / 0.30);
   --lg-high-contrast-border: #0d0d10;
   --lg-mask-opaque: rgb(0 0 0);
@@ -164,7 +163,7 @@ html[data-theme="dark"] {
   --lg-solid-border: rgb(255 255 255 / 0.22);
   --lg-fill-regular: rgb(255 255 255 / 0.07);
   --lg-fill-btn: rgb(255 255 255 / 0.06);
-  --lg-fill-btn-hover: rgb(255 255 255 / 0.14);
+  --lg-fill-menu: rgb(22 22 27 / 0.86);
   --lg-fill-thick: rgb(18 18 22 / 0.68);
   --lg-contrast-refract: 1.08;
   --lg-brightness-refract: 1.12;
@@ -172,16 +171,15 @@ html[data-theme="dark"] {
   --lg-rim-top: rgb(255 255 255 / 0.62);
   --lg-rim-bottom: rgb(255 255 255 / 0.28);
   --lg-rim-flank: rgb(255 255 255 / 0.10);
-  --lg-glint-pointer: rgb(255 255 255 / 0.22);
-  --lg-glint-diag: rgb(255 255 255 / 0.10);
   --lg-nav-hover-bg: rgb(255 255 255 / 0.10);
   --lg-nav-active-bg: rgb(255 255 255 / 0.18);
   --lg-nav-active-shadow: 0 2px 10px rgb(0 0 0 / 0.35);
-  --lg-btn-prominent-bg: rgb(245 245 247 / 0.88);
-  --lg-btn-prominent-hover: rgb(255 255 255 / 0.96);
+  --lg-btn-prominent-bg: rgb(245 245 247 / 0.90);
   --lg-btn-prominent-ink: #09090b;
   --lg-shadow-lift: 0 18px 44px -10px rgb(0 0 0 / 0.65), 0 2px 8px rgb(0 0 0 / 0.40);
   --lg-shadow-btn: 0 6px 16px -4px rgb(0 0 0 / 0.45), 0 1px 2px rgb(0 0 0 / 0.30);
+  --lg-shadow-btn-hover: 0 12px 26px -6px rgb(0 0 0 / 0.62), 0 3px 6px rgb(0 0 0 / 0.38);
+  --lg-shadow-menu: 0 22px 50px -10px rgb(0 0 0 / 0.72), 0 4px 14px rgb(0 0 0 / 0.44);
   --lg-backdrop-scrim: rgb(0 0 0 / 0.56);
   --lg-high-contrast-border: #ffffff;
   --lg-mask-opaque: rgb(0 0 0);
@@ -395,7 +393,7 @@ textarea {
 @media (hover: hover) {
   .lg-icon-btn:hover,
   .weather-chip:hover {
-    background: var(--lg-nav-hover-bg);
+    transform: translateY(-1.5px);
   }
 }
 
@@ -860,6 +858,13 @@ html[data-theme="dark"] .theme-icon-sun {
   box-shadow: var(--lg-nav-active-shadow);
 }
 
+@media (hover: hover) {
+  .segmented__btn:not(.is-active):hover {
+    transform: translateY(-1.5px);
+    color: var(--text-primary);
+  }
+}
+
 .segmented__btn:active {
   transform: scale(0.97);
 }
@@ -883,74 +888,178 @@ html[data-theme="dark"] .theme-icon-sun {
   font-weight: 600;
 }
 
-.select-wrap {
+.glass-select {
   position: relative;
   display: inline-flex;
   align-items: center;
 }
 
-.select-wrap--field {
+.glass-select--field {
   width: 100%;
 }
 
-.month-select-wrap {
-  border-radius: var(--radius-control);
+.glass-select__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
 }
 
-.month-select {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  align-content: center;
-  width: 100%;
+.month-select-trigger {
+  min-width: 142px;
   min-height: 42px;
-  padding: 10px 36px 10px 14px;
-  border: 0;
+  padding: 0 14px;
   border-radius: var(--radius-control);
-  background: transparent;
   color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
-  line-height: 20px;
-  cursor: pointer;
 }
 
-select option {
-  background: var(--bg-card);
-  color: var(--text-primary);
-}
-
-.month-select::-ms-expand,
-.field-select::-ms-expand {
-  display: none;
-}
-
-.month-select::picker-icon,
-.field-select::picker-icon {
-  display: none;
-}
-
-.month-select:focus-visible {
+.month-select-trigger:focus-visible {
   outline: 2px solid var(--brand-link);
   outline-offset: 2px;
 }
 
-.field-select {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  background-image: none;
-  cursor: pointer;
+.glass-select__trigger--field {
+  width: 100%;
+  text-align: left;
 }
 
-.select-chevron {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  z-index: 3;
-  transform: translateY(-50%);
-  pointer-events: none;
+@media (hover: hover) {
+  .glass-select__trigger--field:hover {
+    transform: translateY(-1px);
+  }
+}
+
+.glass-select__value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glass-select__chevron {
+  flex-shrink: 0;
   color: var(--text-secondary);
+  transition: transform 200ms var(--spring-snappy);
+}
+
+.glass-select__trigger[aria-expanded="true"] .glass-select__chevron {
+  transform: rotate(180deg);
+}
+
+@keyframes glass-menu-in-down {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes glass-menu-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.lg-surface.glass-menu {
+  position: fixed;
+  inset: auto;
+  z-index: 80;
+  margin: 0;
+  border-radius: 18px;
+  transform-origin: top center;
+}
+
+.lg-surface.glass-menu.is-placement-top {
+  transform-origin: bottom center;
+}
+
+.lg-surface.glass-menu:not([hidden]) {
+  animation: glass-menu-in-down 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.lg-surface.glass-menu.is-placement-top:not([hidden]) {
+  animation: glass-menu-in-up 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.lg-surface.glass-menu[hidden] {
+  display: none;
+}
+
+.glass-menu__list {
+  position: relative;
+  z-index: 2;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: var(--menu-max-h, 316px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.glass-menu__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 36px;
+  padding: 7px 11px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  user-select: none;
+  transition: transform 150ms ease, background-color 140ms ease;
+}
+
+@media (hover: hover) {
+  .glass-menu__option:hover {
+    background: var(--lg-nav-hover-bg);
+    transform: translateY(-1px);
+  }
+}
+
+.glass-menu__option.is-focused {
+  background: var(--lg-nav-hover-bg);
+}
+
+.glass-menu__option[aria-selected="true"] {
+  background: var(--lg-nav-active-bg);
+  font-weight: 600;
+}
+
+.glass-menu__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glass-menu__check {
+  flex-shrink: 0;
+  opacity: 0;
+  color: var(--text-primary);
+  transition: opacity 140ms ease;
+}
+
+.glass-menu__option[aria-selected="true"] .glass-menu__check {
+  opacity: 1;
 }
 
 /* =========================================================
@@ -1153,6 +1262,13 @@ select option {
   gap: 12px;
   min-width: 0;
   transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+@media (hover: hover) {
+  .birthday-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--card-shadow-hover);
+  }
 }
 
 .birthday-item.is-today {
@@ -1414,11 +1530,9 @@ select option {
   background: var(--bg-card);
   color: var(--text-primary);
   font-size: 16px;
-  transition: border-color 160ms ease, box-shadow 160ms ease;
-}
-
-.field-input.field-select {
-  padding-right: 38px;
+  transition:
+    border-color 160ms ease,
+    transform var(--spring-snappy-dur) var(--spring-snappy);
 }
 
 .field-textarea {
@@ -1427,14 +1541,13 @@ select option {
 }
 
 .field-input:focus-visible {
-  outline: none;
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 1px;
   border-color: var(--brand-accent);
-  box-shadow: 0 0 0 3px var(--brand-accent-soft);
 }
 
 .field-input[aria-invalid="true"] {
   border-color: var(--text-primary);
-  box-shadow: 0 0 0 2px var(--brand-accent-soft);
 }
 
 .field-error {
@@ -1593,16 +1706,15 @@ select option {
   box-shadow: var(--lg-shadow-btn);
   transition:
     transform var(--spring-snappy-dur) var(--spring-snappy),
-    background-color 160ms ease,
-    box-shadow 160ms ease;
+    box-shadow 180ms ease;
 }
 
 .lg-surface.lg-btn-glass.segmented,
-.lg-surface.lg-btn-glass.month-select-wrap {
+.lg-surface.lg-btn-glass.month-select-trigger {
   border-radius: var(--radius-control);
 }
 
-.lg-btn-glass > *:not(.select-chevron) {
+.lg-btn-glass > * {
   position: relative;
   z-index: 2;
 }
@@ -1660,9 +1772,17 @@ select option {
   }
 
   @media (hover: hover) {
-    .lg-surface.lg-btn-glass:not(.segmented):not(.month-select-wrap):hover:not(:disabled) {
-      background: var(--lg-fill-btn-hover);
+    .lg-surface.lg-btn-glass:not(.segmented):hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow:
+        inset 0 1px 0 var(--lg-rim-top),
+        inset 0 -1px 0 var(--lg-rim-bottom),
+        var(--lg-shadow-btn-hover);
     }
+  }
+
+  .lg-surface.lg-btn-glass:not(.segmented):active:not(:disabled) {
+    transform: translateY(0) scale(0.97);
   }
 
   .lg-surface.lg-thick {
@@ -1676,7 +1796,18 @@ select option {
       var(--lg-shadow-lift);
   }
 
-  /* Единая 1px френелевская кромка без mix-blend-mode и двойных дуг */
+  .lg-surface.lg-menu {
+    border-color: transparent;
+    background: var(--lg-fill-menu);
+    -webkit-backdrop-filter: blur(22px) saturate(145%);
+    backdrop-filter: blur(22px) saturate(145%);
+    box-shadow:
+      inset 0 1px 0 var(--lg-rim-top),
+      inset 0 -1px 0 var(--lg-rim-bottom),
+      var(--lg-shadow-menu);
+  }
+
+  /* Единая 1px френелевская кромка без mix-blend-mode, свечения и двойных дуг */
   .lg-surface::before {
     content: "";
     position: absolute;
@@ -1695,27 +1826,6 @@ select option {
     mask-composite: exclude;
     pointer-events: none;
   }
-
-  /* Диагональный глянец и интерактивный курсорный блик */
-  .lg-surface::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    border-radius: inherit;
-    pointer-events: none;
-    background:
-      radial-gradient(
-        180px circle at var(--lg-mx, 30%) var(--lg-my, 0%),
-        var(--lg-glint-pointer),
-        transparent 65%
-      ),
-      linear-gradient(
-        135deg,
-        var(--lg-glint-diag) 0%,
-        transparent 45%
-      );
-  }
 }
 
 /* Tier 2: Живое преломление по Снеллиусу (добавляется JS строго в Chromium) */
@@ -1723,6 +1833,14 @@ select option {
   backdrop-filter:
     var(--lg-filter-url)
     blur(var(--lg-blur-refract))
+    contrast(var(--lg-contrast-refract))
+    brightness(var(--lg-brightness-refract));
+}
+
+.lg-surface.lg-menu[data-lg-refract].is-refracting {
+  backdrop-filter:
+    var(--lg-filter-url)
+    blur(14px)
     contrast(var(--lg-contrast-refract))
     brightness(var(--lg-brightness-refract));
 }
@@ -1745,9 +1863,7 @@ select option {
   font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
-  transition:
-    background-color 180ms ease,
-    transform var(--spring-snappy-dur) var(--spring-snappy);
+  transition: transform var(--spring-snappy-dur) var(--spring-snappy);
 }
 
 .lg-pill .lg-nav-item,
@@ -1757,7 +1873,7 @@ select option {
 
 @media (hover: hover) {
   .lg-nav-item:not(.is-active):hover {
-    background: var(--lg-nav-hover-bg);
+    transform: translateY(-1.5px);
   }
 }
 
@@ -1783,12 +1899,13 @@ select option {
   cursor: pointer;
   transition:
     transform var(--spring-snappy-dur) var(--spring-snappy),
-    background-color 180ms ease;
+    box-shadow 180ms ease;
 }
 
 @media (hover: hover) {
   .lg-btn-prominent:hover {
-    background: var(--lg-btn-prominent-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--lg-shadow-btn-hover);
   }
 }
 
@@ -1868,6 +1985,7 @@ select option {
   .lg-surface,
   .lg-surface.lg-regular,
   .lg-surface.lg-thick,
+  .lg-surface.lg-menu,
   .lg-surface.lg-btn-glass,
   .lg-surface[data-lg-refract].is-refracting {
     -webkit-backdrop-filter: none !important;
@@ -1879,7 +1997,6 @@ select option {
   }
 
   .lg-surface::before,
-  .lg-surface::after,
   .lg-scroll-edge-top {
     display: none !important;
   }
@@ -1888,6 +2005,7 @@ select option {
 :root[data-glass="off"] .lg-surface,
 :root[data-glass="off"] .lg-surface.lg-regular,
 :root[data-glass="off"] .lg-surface.lg-thick,
+:root[data-glass="off"] .lg-surface.lg-menu,
 :root[data-glass="off"] .lg-surface.lg-btn-glass,
 :root[data-glass="off"] .lg-surface[data-lg-refract].is-refracting {
   -webkit-backdrop-filter: none !important;
@@ -1898,13 +2016,13 @@ select option {
 }
 
 :root[data-glass="off"] .lg-surface::before,
-:root[data-glass="off"] .lg-surface::after,
 :root[data-glass="off"] .lg-scroll-edge-top {
   display: none !important;
 }
 
 @media (forced-colors: active) {
   .lg-surface,
+  .lg-surface.lg-menu,
   .lg-surface.lg-btn-glass,
   .lg-surface[data-lg-refract].is-refracting {
     -webkit-backdrop-filter: none !important;
@@ -1938,6 +2056,10 @@ select option {
   .btn-secondary,
   .segmented__btn,
   .field-input,
+  .glass-menu,
+  .glass-menu__option,
+  .glass-select__trigger,
+  .glass-select__chevron,
   .top-nav__indicator {
     transition: opacity 150ms ease !important;
   }
@@ -1946,17 +2068,28 @@ select option {
     transition: none !important;
   }
 
+  .lg-nav-item:hover,
   .lg-nav-item:active,
-  .lg-btn-prominent:active,
+  .lg-icon-btn:hover,
   .lg-icon-btn:active,
+  .weather-chip:hover,
+  .lg-btn-prominent:hover,
+  .lg-btn-prominent:active,
+  .lg-surface.lg-btn-glass:hover,
+  .lg-surface.lg-btn-glass:active,
+  .segmented__btn:hover,
   .btn-icon-soft:active,
   .btn-secondary:active,
   .duty-day-card:hover,
-  .notice-card:hover {
+  .notice-card:hover,
+  .birthday-item:hover,
+  .glass-select__trigger--field:hover,
+  .glass-menu__option:hover {
     transform: none !important;
   }
 
   .sheet-shell:not([hidden]) .sheet-panel,
+  .lg-surface.glass-menu:not([hidden]),
   .notice-card.is-entering {
     animation: none !important;
   }

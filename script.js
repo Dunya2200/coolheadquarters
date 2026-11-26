@@ -48,11 +48,9 @@ function initLiquidGlassEngine() {
   const reducedMedia = window.matchMedia(
     "(prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active)"
   );
-  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const snellLut = buildSnellLUT(1.5168, 0.85, 128);
   const filterCache = new Map();
   const observedEls = new WeakSet();
-  const pointerBoundEls = new WeakSet();
 
   function makeDisplacementMap(w, h, radius, bezel) {
     const W = Math.max(2, Math.round(w));
@@ -198,28 +196,6 @@ function initLiquidGlassEngine() {
     }
   });
 
-  function bindPointerGlint(el) {
-    if (pointerBoundEls.has(el)) return;
-    pointerBoundEls.add(el);
-    let pointerRaf = 0;
-    el.addEventListener(
-      "pointermove",
-      (e) => {
-        if (reducedMotion.matches || document.documentElement.getAttribute("data-glass") === "off") {
-          return;
-        }
-        if (pointerRaf) return;
-        pointerRaf = requestAnimationFrame(() => {
-          pointerRaf = 0;
-          const r = el.getBoundingClientRect();
-          el.style.setProperty("--lg-mx", `${e.clientX - r.left}px`);
-          el.style.setProperty("--lg-my", `${e.clientY - r.top}px`);
-        });
-      },
-      { passive: true }
-    );
-  }
-
   function refreshElements() {
     document.querySelectorAll("[data-lg-refract]").forEach((el) => {
       if (!observedEls.has(el)) {
@@ -228,7 +204,6 @@ function initLiquidGlassEngine() {
       }
       updateElementFilter(el);
     });
-    document.querySelectorAll(".lg-surface").forEach(bindPointerGlint);
   }
 
   refreshElements();
@@ -880,8 +855,270 @@ function createEmptyStateBlock(titleText, descText) {
   return wrap;
 }
 
+function createGlassSelectController(lgEngine) {
+  const popoverEl = document.getElementById("glass-select-popover");
+  const listboxEl = document.getElementById("glass-select-listbox");
+  const instances = [];
+
+  let activeInstance = null;
+  let optionNodes = [];
+  let focusedIndex = -1;
+
+  function findBySelect(selectEl) {
+    return instances.find((inst) => inst.selectEl === selectEl) || null;
+  }
+
+  function sync(selectEl) {
+    const inst = findBySelect(selectEl);
+    if (!inst) return;
+    const selectedOpt =
+      inst.selectEl.options[inst.selectEl.selectedIndex] || inst.selectEl.options[0];
+    inst.valueEl.textContent = selectedOpt ? selectedOpt.textContent : "";
+  }
+
+  function syncAll() {
+    instances.forEach((inst) => sync(inst.selectEl));
+  }
+
+  function setInvalid(selectEl, isInvalid) {
+    const inst = findBySelect(selectEl);
+    if (!inst) return;
+    if (isInvalid) {
+      inst.triggerBtn.setAttribute("aria-invalid", "true");
+    } else {
+      inst.triggerBtn.removeAttribute("aria-invalid");
+    }
+  }
+
+  function setFocusedIndex(nextIdx) {
+    if (optionNodes.length === 0) return;
+    const clamped = Math.max(0, Math.min(nextIdx, optionNodes.length - 1));
+    optionNodes.forEach((node, idx) => {
+      node.classList.toggle("is-focused", idx === clamped);
+    });
+    focusedIndex = clamped;
+    const activeNode = optionNodes[clamped];
+    if (listboxEl && activeNode) {
+      listboxEl.setAttribute("aria-activedescendant", activeNode.id);
+      const itemTop = activeNode.offsetTop;
+      const itemBottom = itemTop + activeNode.offsetHeight;
+      const viewTop = listboxEl.scrollTop;
+      const viewBottom = viewTop + listboxEl.clientHeight;
+      if (itemTop < viewTop) {
+        listboxEl.scrollTop = itemTop;
+      } else if (itemBottom > viewBottom) {
+        listboxEl.scrollTop = itemBottom - listboxEl.clientHeight;
+      }
+    }
+  }
+
+  function positionPopover(inst) {
+    if (!popoverEl || !listboxEl) return;
+    const rect = inst.triggerBtn.getBoundingClientRect();
+    const minMenuWidth = inst.isMonthFilter ? 178 : rect.width;
+    const menuWidth = Math.min(Math.max(Math.round(rect.width), minMenuWidth), window.innerWidth - 24);
+    const rawLeft = inst.isMonthFilter ? rect.right - menuWidth : rect.left;
+    const clampedLeft = Math.max(12, Math.min(rawLeft, window.innerWidth - menuWidth - 12));
+
+    const spaceBelow = window.innerHeight - rect.bottom - 14;
+    const spaceAbove = rect.top - 14;
+    const openUp = spaceBelow < 210 && spaceAbove > spaceBelow;
+    const maxListHeight = Math.max(140, Math.min(320, openUp ? spaceAbove : spaceBelow));
+
+    popoverEl.classList.toggle("is-placement-top", openUp);
+    popoverEl.style.width = `${menuWidth}px`;
+    popoverEl.style.left = `${Math.round(clampedLeft)}px`;
+    listboxEl.style.setProperty("--menu-max-h", `${Math.round(maxListHeight)}px`);
+
+    if (openUp) {
+      popoverEl.style.top = "auto";
+      popoverEl.style.bottom = `${Math.round(window.innerHeight - rect.top + 8)}px`;
+    } else {
+      popoverEl.style.bottom = "auto";
+      popoverEl.style.top = `${Math.round(rect.bottom + 8)}px`;
+    }
+  }
+
+  function close(restoreFocus = false) {
+    if (!activeInstance || !popoverEl) return;
+    const prevTrigger = activeInstance.triggerBtn;
+    prevTrigger.setAttribute("aria-expanded", "false");
+    popoverEl.hidden = true;
+    popoverEl.classList.remove("is-placement-top");
+    if (listboxEl) listboxEl.removeAttribute("aria-activedescendant");
+    optionNodes = [];
+    focusedIndex = -1;
+    activeInstance = null;
+    if (restoreFocus && prevTrigger && typeof prevTrigger.focus === "function") {
+      prevTrigger.focus();
+    }
+  }
+
+  function selectValue(value, restoreFocus = true) {
+    if (!activeInstance) return;
+    const { selectEl } = activeInstance;
+    const changed = selectEl.value !== value;
+    selectEl.value = value;
+    sync(selectEl);
+    close(restoreFocus);
+    if (changed) {
+      selectEl.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  }
+
+  function open(inst) {
+    if (!popoverEl || !listboxEl) return;
+    if (activeInstance === inst) {
+      close(true);
+      return;
+    }
+    if (activeInstance) {
+      close(false);
+    }
+
+    activeInstance = inst;
+    listboxEl.innerHTML = "";
+    optionNodes = [];
+
+    const options = Array.from(inst.selectEl.options);
+    let selectedIdx = 0;
+
+    options.forEach((opt, idx) => {
+      const isSelected = opt.value === inst.selectEl.value;
+      if (isSelected) selectedIdx = idx;
+
+      const li = document.createElement("li");
+      li.id = `glass-menu-opt-${idx}`;
+      li.className = "glass-menu__option";
+      li.setAttribute("role", "option");
+      li.dataset.value = opt.value;
+      li.setAttribute("aria-selected", String(isSelected));
+
+      const label = document.createElement("span");
+      label.className = "glass-menu__label";
+      label.textContent = opt.textContent;
+
+      const checkIcon = createSvgIcon("icon-check", "icon--sm glass-menu__check");
+      li.append(label, checkIcon);
+
+      li.addEventListener("pointerenter", () => {
+        setFocusedIndex(idx);
+      });
+      li.addEventListener("click", (e) => {
+        e.stopPropagation();
+        selectValue(opt.value, false);
+      });
+
+      listboxEl.appendChild(li);
+      optionNodes.push(li);
+    });
+
+    inst.triggerBtn.setAttribute("aria-expanded", "true");
+    positionPopover(inst);
+    popoverEl.hidden = false;
+    setFocusedIndex(selectedIdx);
+
+    requestAnimationFrame(() => {
+      lgEngine.refreshElements();
+    });
+  }
+
+  function handleKeydown(e) {
+    if (!activeInstance) return false;
+    if (e.key === "Escape") {
+      e.preventDefault();
+      close(true);
+      return true;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setFocusedIndex((focusedIndex + 1) % optionNodes.length);
+      return true;
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setFocusedIndex((focusedIndex - 1 + optionNodes.length) % optionNodes.length);
+      return true;
+    }
+    if (e.key === "Home") {
+      e.preventDefault();
+      setFocusedIndex(0);
+      return true;
+    }
+    if (e.key === "End") {
+      e.preventDefault();
+      setFocusedIndex(optionNodes.length - 1);
+      return true;
+    }
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      const target = optionNodes[focusedIndex];
+      if (target) selectValue(target.dataset.value || "");
+      return true;
+    }
+    if (e.key === "Tab") {
+      close(false);
+    }
+    return false;
+  }
+
+  document.querySelectorAll("[data-glass-select]").forEach((wrap) => {
+    const selectEl = wrap.querySelector("select");
+    const triggerBtn = wrap.querySelector(".glass-select__trigger");
+    const valueEl = wrap.querySelector(".glass-select__value");
+    if (!selectEl || !triggerBtn || !valueEl) return;
+
+    const inst = {
+      wrap,
+      selectEl,
+      triggerBtn,
+      valueEl,
+      isMonthFilter: triggerBtn.classList.contains("month-select-trigger")
+    };
+    instances.push(inst);
+
+    triggerBtn.addEventListener("click", () => {
+      open(inst);
+    });
+
+    triggerBtn.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        e.stopPropagation();
+        open(inst);
+      }
+    });
+
+    selectEl.addEventListener("change", () => {
+      sync(selectEl);
+    });
+  });
+
+  document.addEventListener("pointerdown", (e) => {
+    if (!activeInstance || !popoverEl) return;
+    if (popoverEl.contains(e.target) || activeInstance.triggerBtn.contains(e.target)) {
+      return;
+    }
+    close(false);
+  });
+
+  window.addEventListener("resize", () => close(false), { passive: true });
+  window.addEventListener(
+    "scroll",
+    (e) => {
+      if (!activeInstance || !popoverEl) return;
+      if (e.target instanceof Node && popoverEl.contains(e.target)) return;
+      close(false);
+    },
+    { passive: true, capture: true }
+  );
+
+  return { sync, syncAll, setInvalid, close, handleKeydown };
+}
+
 function initApp() {
   const lgEngine = initLiquidGlassEngine();
+  const glassSelects = createGlassSelectController(lgEngine);
   let state = loadState();
   let noticeFilter = "active";
   let selectedBirthdayMonth = new Date().getMonth() + 1;
@@ -975,6 +1212,7 @@ function initApp() {
         selectEl.appendChild(option);
       });
     });
+    glassSelects.syncAll();
   }
 
   function syncThemeAndGlassUI() {
@@ -1293,6 +1531,7 @@ function initApp() {
     if (!birthdaysListEl) return;
     if (birthdayMonthSelect) {
       birthdayMonthSelect.value = String(selectedBirthdayMonth);
+      glassSelects.sync(birthdayMonthSelect);
     }
 
     const todayMd = toMonthDay(now);
@@ -1370,6 +1609,7 @@ function initApp() {
 
   function clearFieldError(inputEl, errorEl) {
     if (inputEl) inputEl.removeAttribute("aria-invalid");
+    glassSelects.setInvalid(inputEl, false);
     if (errorEl) {
       errorEl.textContent = "";
       errorEl.hidden = true;
@@ -1417,6 +1657,7 @@ function initApp() {
       const entry = state.duties.find((d) => d.weekday === defaultWd) || { names: ["", ""] };
       sheetTitleEl.textContent = "Назначить дежурных";
       dutyWeekdaySelect.value = String(defaultWd);
+      glassSelects.sync(dutyWeekdaySelect);
       dutyFirstInput.value = entry.names[0] || "";
       dutySecondInput.value = entry.names[1] || "";
       dutyForm.hidden = false;
@@ -1425,6 +1666,7 @@ function initApp() {
       birthdayNameInput.value = "";
       birthdayClassInput.value = "";
       birthdayMonthInput.value = String(selectedBirthdayMonth);
+      glassSelects.sync(birthdayMonthInput);
       birthdayDayInput.value = "";
       birthdayForm.hidden = false;
     }
@@ -1435,12 +1677,15 @@ function initApp() {
     const activeForm =
       mode === "notice" ? noticeForm : mode === "duty" ? dutyForm : birthdayForm;
     const firstInput = activeForm
-      ? activeForm.querySelector("input:not([type='hidden']), select, textarea")
+      ? activeForm.querySelector(
+          "input:not([type='hidden']), .glass-select__trigger, select:not(.sr-only), textarea"
+        )
       : sheetCloseBtn;
     if (firstInput) firstInput.focus();
   }
 
   function closeSheet() {
+    glassSelects.close(false);
     if (!sheetDialogEl || !sheetBackdropEl || sheetDialogEl.hidden) return;
     sheetDialogEl.hidden = true;
     sheetBackdropEl.hidden = true;
@@ -1545,6 +1790,7 @@ function initApp() {
   }
 
   document.addEventListener("keydown", (e) => {
+    if (glassSelects.handleKeydown(e)) return;
     if (!sheetDialogEl || sheetDialogEl.hidden) return;
     if (e.key === "Escape") {
       e.preventDefault();
@@ -1554,7 +1800,7 @@ function initApp() {
     if (e.key === "Tab") {
       const focusable = Array.from(
         sheetDialogEl.querySelectorAll(
-          'button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])'
+          'button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]):not(.sr-only), textarea:not([disabled])'
         )
       ).filter((el) => el.offsetParent !== null);
       if (focusable.length === 0) return;
@@ -1594,6 +1840,7 @@ function initApp() {
 
   function showFieldError(inputEl, errorEl, message) {
     if (inputEl) inputEl.setAttribute("aria-invalid", "true");
+    glassSelects.setInvalid(inputEl, true);
     if (errorEl) {
       errorEl.textContent = message;
       errorEl.hidden = false;
@@ -1750,7 +1997,10 @@ function initApp() {
           dutyWeekdayErrorEl,
           "Выберите учебный день от понедельника до субботы."
         );
-        firstInvalid = firstInvalid || dutyWeekdaySelect;
+        firstInvalid =
+          firstInvalid ||
+          document.getElementById("duty-weekday-trigger") ||
+          dutyWeekdaySelect;
       }
       if (!firstCheck.ok) {
         showFieldError(dutyFirstInput, dutyFirstErrorEl, firstCheck.message);
@@ -1777,6 +2027,7 @@ function initApp() {
 
       saveState(state);
       dutyForm.reset();
+      glassSelects.syncAll();
       renderAll();
       closeSheet();
       announce(`Дежурные на ${WEEKDAY_NAMES[weekday].toLowerCase()} обновлены`);
@@ -1842,6 +2093,7 @@ function initApp() {
 
       saveState(state);
       birthdayForm.reset();
+      glassSelects.syncAll();
       renderAll();
       closeSheet();
       announce(`Добавлен день рождения: ${nameCheck.value}`);
