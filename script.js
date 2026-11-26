@@ -547,8 +547,784 @@ function loadState() {
   }
 }
 
-if (typeof document !== "undefined") {
-  document.addEventListener("DOMContentLoaded", () => {
-    initLiquidGlassEngine();
+/* =========================================================
+   ФОРМАТИРОВАНИЕ ДАТ, СОЗДАНИЕ DOM И РЕНДЕРИНГ ИНТЕРФЕЙСА
+   ========================================================= */
+
+function createSvgIcon(symbolId, extraClass = "") {
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("class", extraClass ? `icon ${extraClass}` : "icon");
+  svg.setAttribute("aria-hidden", "true");
+  const use = document.createElementNS(SVG_NS, "use");
+  use.setAttribute("href", `#${symbolId}`);
+  svg.appendChild(use);
+  return svg;
+}
+
+function getDaysInMonth(monthNumber) {
+  const daysByMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return daysByMonth[monthNumber - 1] || 31;
+}
+
+function formatFullTodayLabel(date = new Date()) {
+  const weekday = WEEKDAY_NAMES[getTodayJsWeekday(date)] || "";
+  const day = date.getDate();
+  const month = MONTH_GENITIVE[date.getMonth()] || "";
+  const year = date.getFullYear();
+  return `${weekday}, ${day} ${month} ${year}`;
+}
+
+function formatShortIsoDate(isoDate) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return isoDate || "Без даты";
+  const parts = isoDate.split("-");
+  const monthIdx = Number(parts[1]) - 1;
+  const day = Number(parts[2]);
+  const monthName = MONTH_GENITIVE[monthIdx] || parts[1];
+  return `${day} ${monthName}`;
+}
+
+function formatMonthDay(md) {
+  if (!/^\d{2}-\d{2}$/.test(md)) return md;
+  const parts = md.split("-");
+  const monthIdx = Number(parts[0]) - 1;
+  const day = Number(parts[1]);
+  const monthName = MONTH_GENITIVE[monthIdx] || parts[0];
+  return `${day} ${monthName}`;
+}
+
+function daysUntilBirthday(md, baseDate = new Date()) {
+  const parts = md.split("-");
+  const month = Number(parts[0]) - 1;
+  const day = Number(parts[1]);
+  const todayStart = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+  let target = new Date(baseDate.getFullYear(), month, day);
+  if (target < todayStart) {
+    target = new Date(baseDate.getFullYear() + 1, month, day);
+  }
+  return Math.round((target.getTime() - todayStart.getTime()) / 86400000);
+}
+
+function createEmptyStateBlock(titleText, descText) {
+  const wrap = document.createElement("div");
+  wrap.className = "empty-state";
+  const title = document.createElement("p");
+  title.className = "empty-state__title";
+  title.textContent = titleText;
+  const desc = document.createElement("p");
+  desc.className = "empty-state__desc";
+  desc.textContent = descText;
+  wrap.append(title, desc);
+  return wrap;
+}
+
+function initApp() {
+  const lgEngine = initLiquidGlassEngine();
+  let state = loadState();
+  let noticeFilter = "active";
+  let selectedBirthdayMonth = new Date().getMonth() + 1;
+  let latestNoticeId = null;
+  let activeSheetMode = null;
+  let lastTriggerEl = null;
+
+  // Публичная ссылка для быстрой проверки состояния в DevTools Console
+  window.classHqState = state;
+  window.notices = state.notices;
+
+  const todayDateLabelEl = document.getElementById("today-date-label");
+  const todayWeekdayBadgeEl = document.getElementById("today-weekday-badge");
+  const todayDutyBodyEl = document.getElementById("today-duty-body");
+  const editTodayDutyBtn = document.getElementById("edit-today-duty-btn");
+  const upcomingBirthdaysBodyEl = document.getElementById("upcoming-birthdays-body");
+
+  const dutiesGridEl = document.getElementById("duties-grid");
+  const workdays5Btn = document.getElementById("workdays-5-btn");
+  const workdays6Btn = document.getElementById("workdays-6-btn");
+
+  const noticesListEl = document.getElementById("notices-list");
+  const noticesActiveBtn = document.getElementById("notices-active-btn");
+  const noticesArchiveBtn = document.getElementById("notices-archive-btn");
+  const noticesActiveCountEl = document.getElementById("notices-active-count");
+  const noticesArchiveCountEl = document.getElementById("notices-archive-count");
+
+  const birthdaysListEl = document.getElementById("birthdays-list");
+  const birthdayMonthSelect = document.getElementById("birthday-month-select");
+
+  const themeToggleBtn = document.getElementById("theme-toggle");
+  const glassReduceBtn = document.getElementById("lg-reduce-toggle");
+  const clearDataBtn = document.getElementById("clear-data-btn");
+  const restoreDemoBtn = document.getElementById("restore-demo-btn");
+  const statusAnnouncerEl = document.getElementById("status-announcer");
+
+  const openNoticeSheetBtn = document.getElementById("open-notice-sheet-btn");
+  const openDutySheetBtn = document.getElementById("open-duty-sheet-btn");
+  const openBirthdaySheetBtn = document.getElementById("open-birthday-sheet-btn");
+
+  const sheetBackdropEl = document.getElementById("sheet-backdrop");
+  const sheetDialogEl = document.getElementById("sheet-dialog");
+  const sheetTitleEl = document.getElementById("sheet-title");
+  const sheetCloseBtn = document.getElementById("sheet-close-btn");
+
+  const noticeForm = document.getElementById("notice-form");
+  const noticeEditIdInput = document.getElementById("notice-edit-id");
+  const noticeTitleInput = document.getElementById("notice-title-input");
+  const noticeBodyInput = document.getElementById("notice-body-input");
+  const noticeDateInput = document.getElementById("notice-date-input");
+  const noticeTitleCountEl = document.getElementById("notice-title-count");
+  const noticeBodyCountEl = document.getElementById("notice-body-count");
+  const noticeTitleErrorEl = document.getElementById("notice-title-error");
+  const noticeBodyErrorEl = document.getElementById("notice-body-error");
+  const noticeDateErrorEl = document.getElementById("notice-date-error");
+  const noticeSubmitBtn = document.getElementById("notice-submit-btn");
+
+  const dutyForm = document.getElementById("duty-form");
+  const dutyWeekdaySelect = document.getElementById("duty-weekday-select");
+  const dutyFirstInput = document.getElementById("duty-first-input");
+  const dutySecondInput = document.getElementById("duty-second-input");
+  const dutyWeekdayErrorEl = document.getElementById("duty-weekday-error");
+  const dutyFirstErrorEl = document.getElementById("duty-first-error");
+  const dutySecondErrorEl = document.getElementById("duty-second-error");
+
+  const birthdayForm = document.getElementById("birthday-form");
+  const birthdayNameInput = document.getElementById("birthday-name-input");
+  const birthdayClassInput = document.getElementById("birthday-class-input");
+  const birthdayMonthInput = document.getElementById("birthday-month-input");
+  const birthdayDayInput = document.getElementById("birthday-day-input");
+  const birthdayNameErrorEl = document.getElementById("birthday-name-error");
+  const birthdayClassErrorEl = document.getElementById("birthday-class-error");
+  const birthdayDateErrorEl = document.getElementById("birthday-date-error");
+
+  function announce(message) {
+    if (!statusAnnouncerEl) return;
+    statusAnnouncerEl.textContent = "";
+    requestAnimationFrame(() => {
+      statusAnnouncerEl.textContent = message;
+    });
+  }
+
+  function populateMonthSelects() {
+    [birthdayMonthSelect, birthdayMonthInput].forEach((selectEl) => {
+      if (!selectEl) return;
+      selectEl.innerHTML = "";
+      MONTH_NAMES.forEach((monthName, idx) => {
+        const option = document.createElement("option");
+        option.value = String(idx + 1);
+        option.textContent = monthName;
+        selectEl.appendChild(option);
+      });
+    });
+  }
+
+  function syncThemeAndGlassUI() {
+    const isDark = state.settings.theme === "dark";
+    const isGlassOff = state.settings.glass === "off";
+
+    document.documentElement.setAttribute("data-theme", state.settings.theme);
+    document.documentElement.setAttribute("data-glass", state.settings.glass);
+
+    if (themeToggleBtn) {
+      themeToggleBtn.setAttribute(
+        "aria-label",
+        isDark ? "Включить светлую тему" : "Включить тёмную тему"
+      );
+    }
+
+    if (glassReduceBtn) {
+      glassReduceBtn.setAttribute("aria-pressed", String(isGlassOff));
+      glassReduceBtn.setAttribute(
+        "aria-label",
+        isGlassOff ? "Вернуть прозрачность стекла" : "Уменьшить прозрачность стекла"
+      );
+    }
+
+    lgEngine.syncAll();
+  }
+
+  function syncCounters() {
+    if (noticeTitleInput && noticeTitleCountEl) {
+      const len = noticeTitleInput.value.trim().length;
+      noticeTitleCountEl.textContent = `${len} / ${NOTICE_TITLE_LIMIT}`;
+      noticeTitleCountEl.classList.toggle("is-over", len > NOTICE_TITLE_LIMIT);
+    }
+    if (noticeBodyInput && noticeBodyCountEl) {
+      const len = noticeBodyInput.value.trim().length;
+      noticeBodyCountEl.textContent = `${len} / ${NOTICE_BODY_LIMIT}`;
+      noticeBodyCountEl.classList.toggle("is-over", len > NOTICE_BODY_LIMIT);
+    }
+  }
+
+  function renderTodaySummary(now = new Date()) {
+    const todayJsWeekday = getTodayJsWeekday(now);
+    if (todayDateLabelEl) {
+      todayDateLabelEl.textContent = formatFullTodayLabel(now);
+    }
+    if (todayWeekdayBadgeEl) {
+      todayWeekdayBadgeEl.textContent = WEEKDAY_NAMES[todayJsWeekday] || "";
+    }
+
+    if (todayDutyBodyEl) {
+      todayDutyBodyEl.innerHTML = "";
+      const isWeekend =
+        todayJsWeekday === 0 || (todayJsWeekday === 6 && state.settings.workdays === 5);
+
+      if (isWeekend) {
+        const mondayDuty = state.duties.find((d) => d.weekday === 1);
+        const mondayNames = mondayDuty
+          ? mondayDuty.names.filter(Boolean).join(" и ")
+          : "";
+        const heading = document.createElement("p");
+        heading.className = "today-duty-names";
+        heading.textContent = "Сегодня выходной";
+        const note = document.createElement("p");
+        note.className = "today-duty-note";
+        note.textContent = mondayNames
+          ? `Ближайшие дежурные в понедельник: ${mondayNames}.`
+          : "Ближайшее дежурство — в понедельник. Нажмите «Изменить», чтобы назначить пару.";
+        todayDutyBodyEl.append(heading, note);
+      } else {
+        const entry = state.duties.find((d) => d.weekday === todayJsWeekday);
+        const activeNames = entry ? entry.names.filter(Boolean) : [];
+        const namesEl = document.createElement("p");
+        namesEl.className = "today-duty-names";
+        namesEl.textContent =
+          activeNames.length > 0 ? activeNames.join(" и ") : "Дежурные не назначены";
+        const note = document.createElement("p");
+        note.className = "today-duty-note";
+        note.textContent =
+          activeNames.length > 0
+            ? "Ответственные за порядок в кабинете и готовность к урокам сегодня."
+            : "Нажмите «Изменить», чтобы назначить двух дежурных на сегодня.";
+        todayDutyBodyEl.append(namesEl, note);
+      }
+    }
+
+    if (upcomingBirthdaysBodyEl) {
+      upcomingBirthdaysBodyEl.innerHTML = "";
+      if (state.birthdays.length === 0) {
+        const emptyNote = document.createElement("p");
+        emptyNote.className = "today-duty-note";
+        emptyNote.textContent =
+          "Список именинников пока пуст. Добавьте записи через кнопку внизу.";
+        upcomingBirthdaysBodyEl.appendChild(emptyNote);
+      } else {
+        const sorted = state.birthdays
+          .slice()
+          .sort((a, b) => daysUntilBirthday(a.md, now) - daysUntilBirthday(b.md, now))
+          .slice(0, 3);
+        const list = document.createElement("ul");
+        list.className = "upcoming-list";
+        sorted.forEach((person) => {
+          const item = document.createElement("li");
+          item.className = "upcoming-item";
+
+          const nameSpan = document.createElement("span");
+          nameSpan.className = "upcoming-item__name";
+          nameSpan.textContent = person.className
+            ? `${person.name} (${person.className})`
+            : person.name;
+
+          const diff = daysUntilBirthday(person.md, now);
+          const dateSpan = document.createElement("span");
+          dateSpan.className = "upcoming-item__date";
+          if (diff === 0) dateSpan.textContent = "Сегодня";
+          else if (diff === 1) dateSpan.textContent = "Завтра";
+          else dateSpan.textContent = formatMonthDay(person.md);
+
+          item.append(nameSpan, dateSpan);
+          list.appendChild(item);
+        });
+        upcomingBirthdaysBodyEl.appendChild(list);
+      }
+    }
+  }
+
+  function renderDuties(now = new Date()) {
+    if (!dutiesGridEl) return;
+    const todayJsWeekday = getTodayJsWeekday(now);
+    const workdays = state.settings.workdays;
+
+    dutiesGridEl.style.setProperty("--workdays", String(workdays));
+    if (workdays5Btn && workdays6Btn) {
+      workdays5Btn.classList.toggle("is-active", workdays === 5);
+      workdays5Btn.setAttribute("aria-pressed", String(workdays === 5));
+      workdays6Btn.classList.toggle("is-active", workdays === 6);
+      workdays6Btn.setAttribute("aria-pressed", String(workdays === 6));
+    }
+
+    dutiesGridEl.innerHTML = "";
+    for (let weekday = 1; weekday <= workdays; weekday += 1) {
+      const entry = state.duties.find((d) => d.weekday === weekday) || {
+        weekday,
+        names: ["", ""]
+      };
+      const isToday = weekday === todayJsWeekday;
+
+      const card = document.createElement("article");
+      card.className = isToday ? "duty-day-card is-today" : "duty-day-card";
+      if (isToday) {
+        card.setAttribute("aria-current", "date");
+      }
+
+      const head = document.createElement("div");
+      head.className = "duty-day-card__head";
+      const title = document.createElement("h3");
+      title.className = "duty-day-card__name";
+      title.textContent = WEEKDAY_NAMES[weekday];
+      head.appendChild(title);
+
+      if (isToday) {
+        const pill = document.createElement("span");
+        pill.className = "today-pill";
+        pill.textContent = "Сегодня";
+        head.appendChild(pill);
+      }
+
+      const list = document.createElement("ul");
+      list.className = "duty-people";
+      [0, 1].forEach((slotIdx) => {
+        const name = (entry.names[slotIdx] || "").trim();
+        const li = document.createElement("li");
+        li.className = name ? "duty-person" : "duty-person duty-person--empty";
+        li.textContent = name || `Дежурный ${slotIdx + 1}: не назначен`;
+        list.appendChild(li);
+      });
+
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "btn-secondary btn-compact";
+      editBtn.textContent = "Назначить";
+      editBtn.setAttribute(
+        "aria-label",
+        `Назначить дежурных на ${WEEKDAY_NAMES[weekday].toLowerCase()}`
+      );
+      editBtn.addEventListener("click", () => {
+        openSheet("duty", { weekday }, editBtn);
+      });
+
+      card.append(head, list, editBtn);
+      dutiesGridEl.appendChild(card);
+    }
+  }
+
+  function renderNotices() {
+    if (!noticesListEl) return;
+    const activeItems = state.notices.filter((item) => !item.archived);
+    const archivedItems = state.notices.filter((item) => item.archived);
+
+    if (noticesActiveCountEl) noticesActiveCountEl.textContent = String(activeItems.length);
+    if (noticesArchiveCountEl) noticesArchiveCountEl.textContent = String(archivedItems.length);
+
+    if (noticesActiveBtn && noticesArchiveBtn) {
+      noticesActiveBtn.classList.toggle("is-active", noticeFilter === "active");
+      noticesActiveBtn.setAttribute("aria-pressed", String(noticeFilter === "active"));
+      noticesArchiveBtn.classList.toggle("is-active", noticeFilter === "archive");
+      noticesArchiveBtn.setAttribute("aria-pressed", String(noticeFilter === "archive"));
+    }
+
+    const visibleItems = noticeFilter === "archive" ? archivedItems : activeItems;
+    noticesListEl.innerHTML = "";
+
+    if (visibleItems.length === 0) {
+      const emptyBlock =
+        noticeFilter === "archive"
+          ? createEmptyStateBlock(
+              "Архив объявлений пуст",
+              "Сюда попадают завершённые объявления после нажатия «В архив»."
+            )
+          : createEmptyStateBlock(
+              "Актуальных объявлений пока нет",
+              "Нажмите «Объявление» на нижней панели, чтобы опубликовать новость или поручение для класса."
+            );
+      noticesListEl.appendChild(emptyBlock);
+      return;
+    }
+
+    visibleItems.forEach((notice) => {
+      const card = document.createElement("article");
+      card.className =
+        notice.id === latestNoticeId ? "notice-card is-entering" : "notice-card";
+
+      const top = document.createElement("div");
+      top.className = "notice-card__top";
+
+      const title = document.createElement("h3");
+      title.className = "notice-card__title";
+      title.textContent = notice.title;
+
+      const dateBadge = document.createElement("span");
+      dateBadge.className = "notice-card__date";
+      dateBadge.textContent = formatShortIsoDate(notice.date);
+      top.append(title, dateBadge);
+
+      const body = document.createElement("p");
+      body.className = "notice-card__body";
+      body.textContent = notice.body;
+
+      const actions = document.createElement("div");
+      actions.className = "notice-card__actions";
+
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "btn-secondary btn-compact";
+      editBtn.append(
+        createSvgIcon("icon-edit", "icon--sm"),
+        document.createTextNode("Изменить")
+      );
+      editBtn.addEventListener("click", () => {
+        openSheet("notice", { notice }, editBtn);
+      });
+
+      const archiveBtn = document.createElement("button");
+      archiveBtn.type = "button";
+      archiveBtn.className = "btn-secondary btn-compact";
+      archiveBtn.append(
+        createSvgIcon("icon-archive", "icon--sm"),
+        document.createTextNode(notice.archived ? "Вернуть" : "В архив")
+      );
+      archiveBtn.addEventListener("click", () => {
+        state.notices = state.notices.map((item) =>
+          item.id === notice.id ? { ...item, archived: !item.archived } : item
+        );
+        window.notices = state.notices;
+        saveState(state);
+        renderNotices();
+        announce(
+          notice.archived
+            ? "Объявление возвращено в актуальные"
+            : "Объявление перенесено в архив"
+        );
+      });
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.type = "button";
+      deleteBtn.className = "btn-secondary btn-compact btn-danger-soft";
+      deleteBtn.append(
+        createSvgIcon("icon-trash", "icon--sm"),
+        document.createTextNode("Удалить")
+      );
+      deleteBtn.addEventListener("click", () => {
+        state.notices = state.notices.filter((item) => item.id !== notice.id);
+        window.notices = state.notices;
+        saveState(state);
+        renderNotices();
+        announce("Объявление удалено");
+      });
+
+      actions.append(editBtn, archiveBtn, deleteBtn);
+      card.append(top, body, actions);
+      noticesListEl.appendChild(card);
+    });
+
+    latestNoticeId = null;
+  }
+
+  function renderBirthdays(now = new Date()) {
+    if (!birthdaysListEl) return;
+    if (birthdayMonthSelect) {
+      birthdayMonthSelect.value = String(selectedBirthdayMonth);
+    }
+
+    const todayMd = toMonthDay(now);
+    const filtered = state.birthdays
+      .filter((item) => Number(item.md.split("-")[0]) === selectedBirthdayMonth)
+      .slice()
+      .sort((a, b) => Number(a.md.split("-")[1]) - Number(b.md.split("-")[1]));
+
+    birthdaysListEl.innerHTML = "";
+    if (filtered.length === 0) {
+      birthdaysListEl.appendChild(
+        createEmptyStateBlock(
+          `В месяце «${MONTH_NAMES[selectedBirthdayMonth - 1]}» именинников нет`,
+          "Выберите другой месяц или добавьте день рождения через кнопку внизу."
+        )
+      );
+      return;
+    }
+
+    filtered.forEach((person) => {
+      const isToday = person.md === todayMd;
+      const item = document.createElement("article");
+      item.className = isToday ? "birthday-item is-today" : "birthday-item";
+
+      const info = document.createElement("div");
+      info.className = "birthday-item__info";
+      const nameEl = document.createElement("h3");
+      nameEl.className = "birthday-item__name";
+      nameEl.textContent = person.name;
+      const metaEl = document.createElement("p");
+      metaEl.className = "birthday-item__meta";
+      metaEl.textContent = person.className
+        ? `${formatMonthDay(person.md)} · ${person.className}`
+        : formatMonthDay(person.md);
+      info.append(nameEl, metaEl);
+
+      const actions = document.createElement("div");
+      actions.className = "birthday-item__actions";
+      if (isToday) {
+        const badge = document.createElement("span");
+        badge.className = "today-pill";
+        badge.textContent = "Сегодня";
+        actions.appendChild(badge);
+      }
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.type = "button";
+      deleteBtn.className = "btn-icon-soft btn-danger-soft";
+      deleteBtn.setAttribute("aria-label", `Удалить день рождения: ${person.name}`);
+      deleteBtn.appendChild(createSvgIcon("icon-trash", "icon--sm"));
+      deleteBtn.addEventListener("click", () => {
+        state.birthdays = state.birthdays.filter((b) => b.id !== person.id);
+        saveState(state);
+        renderAll();
+        announce(`Запись о дне рождения удалена: ${person.name}`);
+      });
+
+      actions.appendChild(deleteBtn);
+      item.append(info, actions);
+      birthdaysListEl.appendChild(item);
+    });
+  }
+
+  function renderAll() {
+    const now = new Date();
+    syncThemeAndGlassUI();
+    renderTodaySummary(now);
+    renderDuties(now);
+    renderNotices();
+    renderBirthdays(now);
+  }
+
+  function clearFieldError(inputEl, errorEl) {
+    if (inputEl) inputEl.removeAttribute("aria-invalid");
+    if (errorEl) {
+      errorEl.textContent = "";
+      errorEl.hidden = true;
+    }
+  }
+
+  function clearAllFormErrors() {
+    clearFieldError(noticeTitleInput, noticeTitleErrorEl);
+    clearFieldError(noticeBodyInput, noticeBodyErrorEl);
+    clearFieldError(noticeDateInput, noticeDateErrorEl);
+    clearFieldError(dutyWeekdaySelect, dutyWeekdayErrorEl);
+    clearFieldError(dutyFirstInput, dutyFirstErrorEl);
+    clearFieldError(dutySecondInput, dutySecondErrorEl);
+    clearFieldError(birthdayNameInput, birthdayNameErrorEl);
+    clearFieldError(birthdayClassInput, birthdayClassErrorEl);
+    clearFieldError(birthdayDayInput, birthdayDateErrorEl);
+  }
+
+  function openSheet(mode, payload = {}, triggerEl = null) {
+    if (!sheetDialogEl || !sheetBackdropEl) return;
+    activeSheetMode = mode;
+    lastTriggerEl = triggerEl || document.activeElement;
+    clearAllFormErrors();
+
+    [noticeForm, dutyForm, birthdayForm].forEach((f) => {
+      if (f) f.hidden = true;
+    });
+
+    if (mode === "notice" && noticeForm) {
+      const editing = payload.notice || null;
+      sheetTitleEl.textContent = editing ? "Редактировать объявление" : "Новое объявление";
+      noticeSubmitBtn.textContent = editing ? "Сохранить изменения" : "Опубликовать объявление";
+      noticeEditIdInput.value = editing ? editing.id : "";
+      noticeTitleInput.value = editing ? editing.title : "";
+      noticeBodyInput.value = editing ? editing.body : "";
+      noticeDateInput.value = editing ? editing.date : toIsoDate(new Date());
+      syncCounters();
+      noticeForm.hidden = false;
+    } else if (mode === "duty" && dutyForm) {
+      const defaultWd =
+        payload.weekday ||
+        (getTodayJsWeekday() >= 1 && getTodayJsWeekday() <= state.settings.workdays
+          ? getTodayJsWeekday()
+          : 1);
+      const entry = state.duties.find((d) => d.weekday === defaultWd) || { names: ["", ""] };
+      sheetTitleEl.textContent = "Назначить дежурных";
+      dutyWeekdaySelect.value = String(defaultWd);
+      dutyFirstInput.value = entry.names[0] || "";
+      dutySecondInput.value = entry.names[1] || "";
+      dutyForm.hidden = false;
+    } else if (mode === "birthday" && birthdayForm) {
+      sheetTitleEl.textContent = "Добавить день рождения";
+      birthdayNameInput.value = "";
+      birthdayClassInput.value = "";
+      birthdayMonthInput.value = String(selectedBirthdayMonth);
+      birthdayDayInput.value = "";
+      birthdayForm.hidden = false;
+    }
+
+    sheetBackdropEl.hidden = false;
+    sheetDialogEl.hidden = false;
+
+    const activeForm =
+      mode === "notice" ? noticeForm : mode === "duty" ? dutyForm : birthdayForm;
+    const firstInput = activeForm
+      ? activeForm.querySelector("input:not([type='hidden']), select, textarea")
+      : sheetCloseBtn;
+    if (firstInput) firstInput.focus();
+  }
+
+  function closeSheet() {
+    if (!sheetDialogEl || !sheetBackdropEl || sheetDialogEl.hidden) return;
+    sheetDialogEl.hidden = true;
+    sheetBackdropEl.hidden = true;
+    activeSheetMode = null;
+    if (lastTriggerEl && typeof lastTriggerEl.focus === "function") {
+      lastTriggerEl.focus();
+    }
+    lastTriggerEl = null;
+  }
+
+  if (dutyWeekdaySelect) {
+    dutyWeekdaySelect.addEventListener("change", () => {
+      const wd = Number(dutyWeekdaySelect.value);
+      const entry = state.duties.find((d) => d.weekday === wd) || { names: ["", ""] };
+      dutyFirstInput.value = entry.names[0] || "";
+      dutySecondInput.value = entry.names[1] || "";
+      clearFieldError(dutyFirstInput, dutyFirstErrorEl);
+      clearFieldError(dutySecondInput, dutySecondErrorEl);
+    });
+  }
+
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener("click", () => {
+      state.settings.theme = state.settings.theme === "dark" ? "light" : "dark";
+      saveState(state);
+      syncThemeAndGlassUI();
+      announce(
+        state.settings.theme === "dark" ? "Включена тёмная тема" : "Включена светлая тема"
+      );
+    });
+  }
+
+  if (glassReduceBtn) {
+    glassReduceBtn.addEventListener("click", () => {
+      state.settings.glass = state.settings.glass === "off" ? "on" : "off";
+      saveState(state);
+      syncThemeAndGlassUI();
+      announce(
+        state.settings.glass === "off"
+          ? "Прозрачность стекла уменьшена"
+          : "Эффект жидкого стекла включён"
+      );
+    });
+  }
+
+  [workdays5Btn, workdays6Btn].forEach((btn) => {
+    if (!btn) return;
+    btn.addEventListener("click", () => {
+      const days = Number(btn.dataset.workdays) === 6 ? 6 : 5;
+      state.settings.workdays = days;
+      saveState(state);
+      renderTodaySummary();
+      renderDuties();
+      announce(`Выбрана ${days}-дневная учебная неделя`);
+    });
   });
+
+  [noticesActiveBtn, noticesArchiveBtn].forEach((btn) => {
+    if (!btn) return;
+    btn.addEventListener("click", () => {
+      noticeFilter = btn.dataset.noticeFilter === "archive" ? "archive" : "active";
+      renderNotices();
+    });
+  });
+
+  if (birthdayMonthSelect) {
+    birthdayMonthSelect.addEventListener("change", () => {
+      selectedBirthdayMonth = Number(birthdayMonthSelect.value) || 1;
+      renderBirthdays();
+    });
+  }
+
+  if (openNoticeSheetBtn) {
+    openNoticeSheetBtn.addEventListener("click", () =>
+      openSheet("notice", {}, openNoticeSheetBtn)
+    );
+  }
+  if (openDutySheetBtn) {
+    openDutySheetBtn.addEventListener("click", () =>
+      openSheet("duty", {}, openDutySheetBtn)
+    );
+  }
+  if (openBirthdaySheetBtn) {
+    openBirthdaySheetBtn.addEventListener("click", () =>
+      openSheet("birthday", {}, openBirthdaySheetBtn)
+    );
+  }
+  if (editTodayDutyBtn) {
+    editTodayDutyBtn.addEventListener("click", () => {
+      const todayWd = getTodayJsWeekday();
+      const targetWd =
+        todayWd >= 1 && todayWd <= state.settings.workdays ? todayWd : 1;
+      openSheet("duty", { weekday: targetWd }, editTodayDutyBtn);
+    });
+  }
+
+  if (sheetCloseBtn) {
+    sheetCloseBtn.addEventListener("click", closeSheet);
+  }
+  if (sheetBackdropEl) {
+    sheetBackdropEl.addEventListener("click", closeSheet);
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (!sheetDialogEl || sheetDialogEl.hidden) return;
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closeSheet();
+      return;
+    }
+    if (e.key === "Tab") {
+      const focusable = Array.from(
+        sheetDialogEl.querySelectorAll(
+          'button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])'
+        )
+      ).filter((el) => el.offsetParent !== null);
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  });
+
+  if (clearDataBtn) {
+    clearDataBtn.addEventListener("click", () => {
+      state = createEmptyState(state.settings);
+      window.classHqState = state;
+      window.notices = state.notices;
+      saveState(state);
+      renderAll();
+      announce("Данные штаба очищены");
+    });
+  }
+
+  if (restoreDemoBtn) {
+    restoreDemoBtn.addEventListener("click", () => {
+      state = createDemoState(state.settings);
+      window.classHqState = state;
+      window.notices = state.notices;
+      saveState(state);
+      renderAll();
+      announce("Демо-данные штаба восстановлены");
+    });
+  }
+
+  if (noticeTitleInput) noticeTitleInput.addEventListener("input", syncCounters);
+  if (noticeBodyInput) noticeBodyInput.addEventListener("input", syncCounters);
+
+  populateMonthSelects();
+  renderAll();
+}
+
+if (typeof document !== "undefined") {
+  document.addEventListener("DOMContentLoaded", initApp);
 }
