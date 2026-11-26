@@ -81,6 +81,29 @@
 
   /* Переменная количества дней недели для Grid-шахматки */
   --workdays: 5;
+
+  /* Пружинные кривые Apple HIG в CSS linear() */
+  --spring-smooth-dur: 559ms;
+  --spring-smooth: linear(
+    0, 0.0052 1.2%, 0.0209 2.5%, 0.0827 5.4%, 0.1601 8.1%, 0.4581 17.6%,
+    0.5510 21.0%, 0.6321 24.4%, 0.6994 27.7%, 0.7592 31.2%, 0.8097 34.8%,
+    0.8526 38.6%, 0.8918 43.1%, 0.9239 48.1%, 0.9488 53.7%, 0.9675 59.9%,
+    0.9894 74.8%, 1
+  );
+  --spring-snappy-dur: 466ms;
+  --spring-snappy: linear(
+    0, 0.0064 1.4%, 0.0241 2.8%, 0.0529 4.3%, 0.0950 6.0%, 0.1887 9.1%,
+    0.5141 18.9%, 0.6097 22.2%, 0.6908 25.4%, 0.7599 28.6%, 0.8175 31.8%,
+    0.8671 35.2%, 0.9072 38.7%, 0.9415 42.7%, 0.9678 47.1%, 0.9863 52.0%,
+    0.9983 57.5%, 1.0063 70.4%, 1
+  );
+  --spring-bouncy-dur: 563ms;
+  --spring-bouncy: linear(
+    0, 0.0066 1.5%, 0.0263 3.1%, 0.0588 4.8%, 0.1061 6.7%, 0.2097 10.1%,
+    0.5563 20.4%, 0.6564 23.8%, 0.7388 27.0%, 0.8070 30.1%, 0.8639 33.2%,
+    0.9114 36.4%, 0.9506 39.8%, 0.9819 43.5%, 1.0043 47.4%, 1.0191 51.8%,
+    1.0269 56.7%, 1.0268 65.2%, 1
+  );
 }
 
 html[data-theme="dark"] {
@@ -1374,5 +1397,337 @@ html[data-theme="dark"] .theme-icon-sun {
 
   .workspace-split {
     grid-template-columns: 1.45fr 1fr;
+  }
+}
+
+/* =========================================================
+   СЛОЙ 3: APPLE LIQUID GLASS — TIER 0 / TIER 1 / TIER 2
+   ========================================================= */
+
+.lg-surface {
+  position: relative;
+  color: var(--lg-ink);
+  background: var(--lg-solid-bg);
+  border: 1px solid var(--lg-solid-border);
+  border-radius: var(--lg-radius-outer);
+  box-shadow: var(--lg-shadow-lift);
+  overflow: hidden;
+  isolation: isolate;
+  transition: transform var(--spring-snappy-dur) var(--spring-snappy);
+}
+
+@supports (corner-shape: squircle) {
+  .lg-surface:not(.lg-pill) {
+    corner-shape: squircle;
+  }
+}
+
+.lg-pill {
+  border-radius: var(--radius-pill);
+}
+
+.lg-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--lg-padding);
+}
+
+@keyframes sheet-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.sheet-shell:not([hidden]) .sheet-panel {
+  animation: sheet-enter var(--spring-smooth-dur) var(--spring-smooth) both;
+}
+
+/* Tier 1: Кроссбраузерное стекло (Safari, Firefox, Chromium) */
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .lg-surface.lg-regular {
+    border-color: transparent;
+    background: var(--lg-fill-regular);
+    -webkit-backdrop-filter: blur(var(--lg-blur-regular)) saturate(var(--lg-saturate));
+    backdrop-filter: blur(var(--lg-blur-regular)) saturate(var(--lg-saturate));
+    box-shadow:
+      inset 0 1px 0 var(--lg-rim-top),
+      inset 0 -1px 0 var(--lg-rim-bottom),
+      var(--lg-shadow-lift);
+  }
+
+  .lg-surface.lg-thick {
+    border-color: transparent;
+    background: var(--lg-fill-thick);
+    -webkit-backdrop-filter: blur(var(--lg-blur-thick)) saturate(150%);
+    backdrop-filter: blur(var(--lg-blur-thick)) saturate(150%);
+    box-shadow:
+      inset 0 1px 0 var(--lg-rim-top),
+      inset 0 -1px 0 var(--lg-rim-bottom),
+      var(--lg-shadow-lift);
+  }
+
+  /* 1px френелевский ободок без mix-blend-mode */
+  .lg-surface::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--lg-rim-gradient);
+    -webkit-mask:
+      linear-gradient(var(--lg-mask-opaque) 0 0) content-box,
+      linear-gradient(var(--lg-mask-opaque) 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(var(--lg-mask-opaque) 0 0) content-box,
+      linear-gradient(var(--lg-mask-opaque) 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Диагональный глянец и интерактивный курсорный блик */
+  .lg-surface::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        180px circle at var(--lg-mx, 30%) var(--lg-my, 0%),
+        var(--lg-glint-pointer),
+        transparent 65%
+      ),
+      linear-gradient(
+        135deg,
+        var(--lg-glint-diag) 0%,
+        transparent 45%
+      );
+  }
+}
+
+/* Tier 2: Живое преломление по Снеллиусу (добавляется JS строго в Chromium) */
+.lg-surface[data-lg-refract].is-refracting {
+  backdrop-filter: var(--lg-filter-url) blur(var(--lg-blur-refract)) saturate(170%) brightness(1.04);
+}
+
+/* Внутренние контролы без вложенного backdrop-filter */
+.lg-nav-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--lg-radius-inner);
+  background: transparent;
+  color: inherit;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 180ms ease,
+    transform var(--spring-snappy-dur) var(--spring-snappy);
+}
+
+.lg-pill .lg-nav-item,
+.lg-pill .lg-btn-prominent {
+  border-radius: var(--radius-pill);
+}
+
+@media (hover: hover) {
+  .lg-nav-item:hover {
+    background: var(--lg-nav-hover-bg);
+  }
+}
+
+.lg-nav-item.is-active {
+  background: var(--lg-nav-active-bg);
+  box-shadow: var(--lg-nav-active-shadow);
+  view-transition-name: lg-active-pill;
+}
+
+.lg-nav-item:active,
+.lg-btn-prominent:active {
+  transform: scale(0.96);
+}
+
+/* Главная акцентная кнопка CTA: сплошная заливка + автоконтраст */
+.lg-btn-prominent {
+  min-height: 40px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--lg-radius-inner);
+  background: var(--brand-accent);
+  color: var(--brand-ink-on-accent);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform var(--spring-snappy-dur) var(--spring-snappy),
+    background-color 180ms ease;
+}
+
+@supports (color: contrast-color(red)) {
+  .lg-btn-prominent {
+    color: contrast-color(var(--brand-accent));
+  }
+}
+
+@media (hover: hover) {
+  .lg-btn-prominent:hover {
+    background: var(--brand-accent-hover);
+  }
+}
+
+.lg-nav-item:focus-visible,
+.lg-btn-prominent:focus-visible {
+  outline: 2px solid var(--brand-link);
+  outline-offset: 2px;
+}
+
+/* Прогрессивный край прокрутки (вне предков с overflow/opacity/mask) */
+.lg-scroll-edge-top {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 76px;
+  z-index: 30;
+  pointer-events: none;
+  --edge-fade: 0;
+}
+
+.lg-edge-blur-1,
+.lg-edge-blur-2,
+.lg-edge-tint {
+  position: absolute;
+  inset: 0;
+  opacity: var(--edge-fade);
+}
+
+.lg-edge-blur-1 {
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  -webkit-mask-image: linear-gradient(to bottom, var(--lg-mask-opaque) 20%, transparent 100%);
+  mask-image: linear-gradient(to bottom, var(--lg-mask-opaque) 20%, transparent 100%);
+}
+
+.lg-edge-blur-2 {
+  height: 46px;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  -webkit-mask-image: linear-gradient(to bottom, var(--lg-mask-opaque) 0%, transparent 100%);
+  mask-image: linear-gradient(to bottom, var(--lg-mask-opaque) 0%, transparent 100%);
+}
+
+.lg-edge-tint {
+  background: linear-gradient(
+    to bottom,
+    color-mix(in oklab, var(--lg-surface) 75%, transparent),
+    transparent
+  );
+}
+
+/* =========================================================
+   ОБЯЗАТЕЛЬНЫЕ ПЕРЕОПРЕДЕЛЕНИЯ ДОСТУПНОСТИ
+   ========================================================= */
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .lg-surface,
+  .lg-surface.lg-regular,
+  .lg-surface.lg-thick,
+  .lg-surface[data-lg-refract].is-refracting {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    background: var(--lg-solid-bg) !important;
+    color: var(--lg-ink) !important;
+    border: 1px solid var(--lg-high-contrast-border) !important;
+    box-shadow: var(--lg-shadow-lift) !important;
+  }
+
+  .lg-surface::before,
+  .lg-surface::after,
+  .lg-scroll-edge-top {
+    display: none !important;
+  }
+}
+
+:root[data-glass="off"] .lg-surface,
+:root[data-glass="off"] .lg-surface.lg-regular,
+:root[data-glass="off"] .lg-surface.lg-thick,
+:root[data-glass="off"] .lg-surface[data-lg-refract].is-refracting {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background: var(--lg-solid-bg) !important;
+  color: var(--lg-ink) !important;
+  border: 1px solid var(--lg-solid-border) !important;
+}
+
+:root[data-glass="off"] .lg-surface::before,
+:root[data-glass="off"] .lg-surface::after,
+:root[data-glass="off"] .lg-scroll-edge-top {
+  display: none !important;
+}
+
+@media (forced-colors: active) {
+  .lg-surface,
+  .lg-surface[data-lg-refract].is-refracting {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    background: Canvas !important;
+    color: CanvasText !important;
+    border: 1px solid CanvasText !important;
+  }
+
+  .lg-btn-prominent {
+    background: Highlight !important;
+    color: HighlightText !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .lg-surface,
+  .lg-nav-item,
+  .lg-btn-prominent,
+  .lg-icon-btn,
+  .weather-chip,
+  .content-card,
+  .duty-day-card,
+  .notice-card,
+  .birthday-item,
+  .btn-icon-soft,
+  .btn-secondary,
+  .segmented__btn,
+  .field-input {
+    transition: opacity 150ms ease !important;
+  }
+
+  .lg-nav-item:active,
+  .lg-btn-prominent:active,
+  .lg-icon-btn:active,
+  .duty-day-card:hover,
+  .notice-card:hover {
+    transform: none !important;
+  }
+
+  .sheet-shell:not([hidden]) .sheet-panel,
+  .notice-card.is-entering {
+    animation: none !important;
   }
 }
