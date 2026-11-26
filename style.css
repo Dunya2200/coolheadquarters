@@ -901,15 +901,17 @@ html[data-theme="dark"] .theme-icon-sun {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
+  align-content: center;
   width: 100%;
-  min-height: 40px;
-  padding: 0 36px 0 14px;
+  min-height: 42px;
+  padding: 10px 36px 10px 14px;
   border: 0;
   border-radius: var(--radius-control);
   background: transparent;
   color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
+  line-height: 20px;
   cursor: pointer;
 }
 
