@@ -1659,8 +1659,275 @@ function initApp() {
     });
   }
 
+  /* =========================================================
+     ПОГОДА НА ЗАВТРА (OPEN-METEO) И ЦИТАТА (ADVICE SLIP)
+     ========================================================= */
+
+  const weatherBodyEl = document.getElementById("weather-body");
+  const weatherUpdatedLabelEl = document.getElementById("weather-updated-label");
+  const weatherRefreshBtn = document.getElementById("weather-refresh-btn");
+  const headerWeatherTextEl = document.getElementById("header-weather-text");
+  const headerWeatherIconEl = document.getElementById("header-weather-icon");
+
+  const quoteBodyEl = document.getElementById("quote-body");
+  const quoteRefreshBtn = document.getElementById("quote-refresh-btn");
+
+  const WMO_MAP = {
+    0: { label: "Ясно", icon: "icon-weather-sun" },
+    1: { label: "Преимущественно ясно", icon: "icon-weather-partly" },
+    2: { label: "Переменная облачность", icon: "icon-weather-partly" },
+    3: { label: "Пасмурно", icon: "icon-weather-cloud" },
+    45: { label: "Туман", icon: "icon-weather-cloud" },
+    48: { label: "Изморозь и туман", icon: "icon-weather-cloud" },
+    51: { label: "Лёгкая морось", icon: "icon-weather-rain" },
+    53: { label: "Умеренная морось", icon: "icon-weather-rain" },
+    55: { label: "Плотная морось", icon: "icon-weather-rain" },
+    61: { label: "Небольшой дождь", icon: "icon-weather-rain" },
+    63: { label: "Умеренный дождь", icon: "icon-weather-rain" },
+    65: { label: "Сильный дождь", icon: "icon-weather-rain" },
+    71: { label: "Небольшой снег", icon: "icon-weather-snow" },
+    73: { label: "Умеренный снег", icon: "icon-weather-snow" },
+    75: { label: "Сильный снегопад", icon: "icon-weather-snow" },
+    77: { label: "Снежная крупа", icon: "icon-weather-snow" },
+    80: { label: "Кратковременный дождь", icon: "icon-weather-rain" },
+    81: { label: "Ливень", icon: "icon-weather-rain" },
+    82: { label: "Сильный ливень", icon: "icon-weather-rain" },
+    85: { label: "Небольшой снегопад", icon: "icon-weather-snow" },
+    86: { label: "Сильный снегопад", icon: "icon-weather-snow" },
+    95: { label: "Гроза", icon: "icon-weather-storm" },
+    96: { label: "Гроза с градом", icon: "icon-weather-storm" },
+    99: { label: "Сильная гроза с градом", icon: "icon-weather-storm" }
+  };
+
+  function describeWmoCode(code) {
+    return WMO_MAP[Number(code)] || { label: "Переменная облачность", icon: "icon-weather-partly" };
+  }
+
+  function formatSignedTemp(temp) {
+    const rounded = Math.round(Number(temp));
+    return rounded > 0 ? `+${rounded}°` : `${rounded}°`;
+  }
+
+  function formatCurrentTime() {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  }
+
+  function renderWeatherState(viewState) {
+    if (!weatherBodyEl) return;
+    weatherBodyEl.innerHTML = "";
+
+    if (viewState.status === "loading") {
+      if (weatherUpdatedLabelEl) weatherUpdatedLabelEl.textContent = "Загружаем прогноз...";
+      const s1 = document.createElement("div");
+      s1.className = "skeleton-line skeleton-line--lg";
+      const s2 = document.createElement("div");
+      s2.className = "skeleton-line skeleton-line--md";
+      weatherBodyEl.append(s1, s2);
+      return;
+    }
+
+    if (viewState.status === "empty") {
+      if (weatherUpdatedLabelEl) weatherUpdatedLabelEl.textContent = "Данных нет";
+      const msg = document.createElement("p");
+      msg.className = "weather-meta";
+      msg.textContent = "Сервер вернул пустой прогноз на завтра. Попробуйте обновить чуть позже.";
+      weatherBodyEl.appendChild(msg);
+      return;
+    }
+
+    if (viewState.status === "error") {
+      if (weatherUpdatedLabelEl) weatherUpdatedLabelEl.textContent = "Нет ответа от сервера";
+      const msg = document.createElement("p");
+      msg.className = "weather-meta";
+      msg.textContent = "Не удалось загрузить прогноз погоды.";
+      weatherBodyEl.appendChild(msg);
+      return;
+    }
+
+    const data = viewState.data;
+    const tempText = formatSignedTemp(data.tmax);
+    const tminText = Number.isFinite(data.tmin) ? formatSignedTemp(data.tmin) : null;
+
+    if (weatherUpdatedLabelEl) {
+      weatherUpdatedLabelEl.textContent =
+        viewState.status === "fallback"
+          ? "Офлайн-резерв"
+          : `Обновлено в ${data.updatedAt}`;
+    }
+
+    if (headerWeatherTextEl) {
+      headerWeatherTextEl.textContent = tempText;
+    }
+    if (headerWeatherIconEl) {
+      const useEl = headerWeatherIconEl.querySelector("use");
+      if (useEl) useEl.setAttribute("href", `#${data.icon}`);
+    }
+
+    const mainRow = document.createElement("div");
+    mainRow.className = "weather-main";
+
+    const tempBox = document.createElement("div");
+    tempBox.className = "weather-temp-box";
+    tempBox.append(createSvgIcon(data.icon, "weather-hero-icon"));
+    const tempVal = document.createElement("span");
+    tempVal.className = "weather-temp";
+    tempVal.textContent = tempText;
+    tempBox.appendChild(tempVal);
+
+    const details = document.createElement("div");
+    details.className = "weather-details";
+    const desc = document.createElement("p");
+    desc.className = "weather-desc";
+    desc.textContent = data.description;
+    const meta = document.createElement("p");
+    meta.className = "weather-meta";
+    const metaParts = [];
+    if (tminText !== null) metaParts.push(`ночью до ${tminText}`);
+    if (Number.isFinite(data.precipProb)) metaParts.push(`вероятность осадков ${data.precipProb}%`);
+    meta.textContent = metaParts.join(" · ") || "Прогноз на завтра по Москве";
+    details.append(desc, meta);
+
+    mainRow.append(tempBox, details);
+
+    const verdict = document.createElement("div");
+    verdict.className = data.yardOk ? "status-pill status-pill--ok" : "status-pill status-pill--warn";
+    verdict.textContent = data.yardOk
+      ? "Линейка во дворе: погода подходит"
+      : "Линейку лучше провести в актовом зале";
+
+    weatherBodyEl.append(mainRow, verdict);
+
+    if (viewState.status === "fallback") {
+      const fbBanner = document.createElement("div");
+      fbBanner.className = "fallback-banner";
+      fbBanner.append(createSvgIcon("icon-wifi-off", "icon--sm"));
+      const fbText = document.createElement("span");
+      fbText.textContent = "Данные из сохранённой копии (нет подключения к сети).";
+      fbBanner.appendChild(fbText);
+      weatherBodyEl.appendChild(fbBanner);
+    }
+  }
+
+  function renderQuoteState(viewState) {
+    if (!quoteBodyEl) return;
+    quoteBodyEl.innerHTML = "";
+
+    if (viewState.status === "loading") {
+      const s = document.createElement("div");
+      s.className = "skeleton-line skeleton-line--md";
+      quoteBodyEl.appendChild(s);
+      return;
+    }
+
+    if (viewState.status === "empty") {
+      const msg = document.createElement("p");
+      msg.className = "quote-source";
+      msg.textContent = "Цитата дня пока не пришла.";
+      quoteBodyEl.appendChild(msg);
+      return;
+    }
+
+    const quoteText = document.createElement("p");
+    quoteText.className = "quote-text";
+    quoteText.textContent = `«${viewState.text}»`;
+    const quoteSource = document.createElement("p");
+    quoteSource.className = "quote-source";
+    quoteSource.textContent =
+      viewState.status === "fallback"
+        ? "Из сохранённой копии (нет сети)"
+        : "Источник: Advice Slip API";
+    quoteBodyEl.append(quoteText, quoteSource);
+  }
+
+  async function loadWeather() {
+    if (weatherRefreshBtn) weatherRefreshBtn.disabled = true;
+    renderWeatherState({ status: "loading" });
+
+    const lat = state.settings.lat;
+    const lon = state.settings.lon;
+    const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=2`;
+
+    try {
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error(`Open-Meteo HTTP ${response.status}`);
+      }
+      const raw = await response.json();
+      const daily = raw && raw.daily;
+      if (!daily || !Array.isArray(daily.temperature_2m_max) || daily.temperature_2m_max.length === 0) {
+        renderWeatherState({ status: "empty" });
+        return;
+      }
+
+      const idx = daily.temperature_2m_max.length > 1 ? 1 : 0;
+      const tmax = Number(daily.temperature_2m_max[idx]);
+      const tmin = Array.isArray(daily.temperature_2m_min) ? Number(daily.temperature_2m_min[idx]) : NaN;
+      const code = Array.isArray(daily.weathercode) ? Number(daily.weathercode[idx]) : 2;
+      const precipProb = Array.isArray(daily.precipitation_probability_max)
+        ? Number(daily.precipitation_probability_max[idx])
+        : NaN;
+
+      if (!Number.isFinite(tmax)) {
+        renderWeatherState({ status: "empty" });
+        return;
+      }
+
+      const wmo = describeWmoCode(code);
+      const yardOk = tmax >= 5 && code <= 3 && (!Number.isFinite(precipProb) || precipProb < 40);
+
+      renderWeatherState({
+        status: "ready",
+        data: {
+          tmax,
+          tmin,
+          code,
+          precipProb,
+          description: wmo.label,
+          icon: wmo.icon,
+          yardOk,
+          updatedAt: formatCurrentTime()
+        }
+      });
+    } catch (err) {
+      console.warn("Сбой запроса Open-Meteo:", err);
+      renderWeatherState({ status: "error" });
+    } finally {
+      if (weatherRefreshBtn) weatherRefreshBtn.disabled = false;
+    }
+  }
+
+  async function loadQuote() {
+    if (quoteRefreshBtn) quoteRefreshBtn.disabled = true;
+    renderQuoteState({ status: "loading" });
+
+    try {
+      const response = await fetch("https://api.adviceslip.com/advice", { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Advice Slip HTTP ${response.status}`);
+      }
+      const raw = await response.json();
+      const text = raw && raw.slip && typeof raw.slip.advice === "string" ? raw.slip.advice.trim() : "";
+      if (!text) {
+        renderQuoteState({ status: "empty" });
+        return;
+      }
+      renderQuoteState({ status: "ready", text });
+    } catch (err) {
+      console.warn("Сбой запроса Advice Slip:", err);
+      renderQuoteState({ status: "empty" });
+    } finally {
+      if (quoteRefreshBtn) quoteRefreshBtn.disabled = false;
+    }
+  }
+
+  if (weatherRefreshBtn) weatherRefreshBtn.addEventListener("click", loadWeather);
+  if (quoteRefreshBtn) quoteRefreshBtn.addEventListener("click", loadQuote);
+
   populateMonthSelects();
   renderAll();
+  loadWeather();
+  loadQuote();
 }
 
 if (typeof document !== "undefined") {
