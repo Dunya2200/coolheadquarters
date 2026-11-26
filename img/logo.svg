@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+  <defs>
+    <linearGradient id="hq-logo-grad" x1="4" y1="2" x2="36" y2="38" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0A84FF" />
+      <stop offset="100%" stop-color="#0052B4" />
+    </linearGradient>
+    <linearGradient id="hq-logo-glint" x1="8" y1="4" x2="28" y2="24" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.55" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <rect x="3" y="3" width="34" height="34" rx="10" fill="url(#hq-logo-grad)" />
+  <rect x="4" y="4" width="32" height="32" rx="9" stroke="url(#hq-logo-glint)" stroke-width="1.5" />
+  <rect x="10" y="10" width="8.5" height="8.5" rx="2.5" fill="#FFFFFF" fill-opacity="0.95" />
+  <rect x="21.5" y="10" width="8.5" height="8.5" rx="2.5" fill="#FFFFFF" fill-opacity="0.55" />
+  <rect x="10" y="21.5" width="8.5" height="8.5" rx="2.5" fill="#FFFFFF" fill-opacity="0.55" />
+  <rect x="21.5" y="21.5" width="8.5" height="8.5" rx="2.5" fill="#FFFFFF" fill-opacity="0.95" />
+</svg>
