@@ -1,67 +1,82 @@
 /* =========================================================
-   КЛАССНЫЙ ШТАБ (P05) · ТОКЕНЫ И MOBILE FIRST СЕТКА
+   КЛАССНЫЙ ШТАБ (P05) · МОНОХРОМНАЯ Ч/Б СХЕМА И IOS LIQUID GLASS
    Все цветовые значения определены только в :root и html[data-theme="dark"]
    ========================================================= */
+
+@font-face {
+  font-family: "SF Pro Display Custom";
+  src: url("fonts/font.otf") format("opentype");
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   color-scheme: light;
 
-  /* Шрифт и базовые размеры */
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Шрифт и геометрия */
+  --font-sans: "SF Pro Display Custom", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --radius-card: 22px;
   --radius-control: 14px;
   --radius-pill: 999px;
 
-  /* Семантическая палитра и акценты (WCAG AA+) */
-  --brand-accent: #0066cc;
-  --brand-accent-hover: #0052a3;
-  --brand-accent-soft: #e6f0fc;
-  --brand-link: #005bb5;
+  /* Строгая монохромная палитра (светлая тема, WCAG AA+) */
+  --brand-accent: #111113;
+  --brand-accent-hover: #27272c;
+  --brand-accent-soft: #e6e6eb;
+  --brand-link: #111113;
   --brand-ink-on-accent: #ffffff;
 
-  --status-ok: #137333;
-  --status-ok-bg: #e6f4ea;
-  --status-warn: #9a5b00;
-  --status-warn-bg: #fef3dc;
-  --status-danger: #c5221f;
-  --status-danger-bg: #fce8e6;
+  --status-ok: #111113;
+  --status-ok-bg: #e8e8ed;
+  --status-warn: #111113;
+  --status-warn-bg: #f1f1f5;
+  --status-danger: #111113;
+  --status-danger-bg: #e6e6eb;
 
-  /* Слой 1 и Слой 2: спокойный фон и сплошные карточки */
-  --bg-canvas: #eef2f7;
-  --bg-canvas-accent-1: #dbeafe;
-  --bg-canvas-accent-2: #e0e7ff;
+  /* Слой 1 и Слой 2: ч/б редакционный фон и сплошные карточки */
+  --bg-canvas: #ececef;
+  --bg-canvas-accent-1: #ffffff;
+  --bg-canvas-accent-2: #d2d2da;
+  --bg-canvas-grid: rgb(17 17 20 / 0.055);
   --bg-card: #ffffff;
-  --bg-card-muted: #f4f6fa;
-  --bg-control: #eef1f6;
-  --border-subtle: #dce2ec;
-  --border-strong: #bac5d6;
+  --bg-card-muted: #f3f3f6;
+  --bg-control: #e9e9ee;
+  --border-subtle: #dadadf;
+  --border-strong: #b4b4be;
 
-  --text-primary: #111114;
-  --text-secondary: #434956;
-  --text-muted: #5c6473;
+  --text-primary: #0d0d10;
+  --text-secondary: #43434b;
+  --text-muted: #666670;
 
-  --card-shadow: 0 2px 10px -2px rgb(17 17 20 / 0.06), 0 1px 3px rgb(17 17 20 / 0.04);
-  --card-shadow-hover: 0 10px 26px -6px rgb(17 17 20 / 0.12), 0 2px 6px rgb(17 17 20 / 0.05);
+  --card-shadow: 0 2px 10px -2px rgb(0 0 0 / 0.06), 0 1px 3px rgb(0 0 0 / 0.04);
+  --card-shadow-hover: 0 12px 28px -6px rgb(0 0 0 / 0.12), 0 2px 6px rgb(0 0 0 / 0.05);
 
-  /* Слой 3: токены Apple Liquid Glass (HIG iOS 26 / iOS 27) */
-  --lg-surface: #f5f5f7;
-  --lg-ink: #111114;
-  --lg-solid-bg: #f2f2f5;
-  --lg-solid-border: rgb(17 17 20 / 0.16);
-  --lg-fill-regular: color-mix(in oklab, var(--lg-surface) 64%, transparent);
-  --lg-fill-thick: color-mix(in oklab, var(--lg-surface) 78%, transparent);
-  --lg-blur-regular: 14px;
+  /* Слой 3: прозрачное iOS Liquid Glass (ч/б) */
+  --lg-surface: #ffffff;
+  --lg-ink: #0d0d10;
+  --lg-solid-bg: #f4f4f6;
+  --lg-solid-border: rgb(13 13 16 / 0.18);
+  --lg-fill-regular: rgb(255 255 255 / 0.24);
+  --lg-fill-btn: rgb(255 255 255 / 0.20);
+  --lg-fill-btn-hover: rgb(255 255 255 / 0.38);
+  --lg-fill-thick: rgb(255 255 255 / 0.66);
+
+  --lg-blur-regular: 10px;
+  --lg-blur-btn: 7px;
   --lg-blur-thick: 24px;
-  --lg-blur-refract: 2.5px;
-  --lg-saturate: 160%;
+  --lg-blur-refract: 0.75px;
+  --lg-saturate: 135%;
+  --lg-contrast-refract: 1.05;
+  --lg-brightness-refract: 1.04;
 
   --lg-radius-outer: 28px;
   --lg-padding: 6px;
   --lg-radius-inner: max(0px, calc(var(--lg-radius-outer) - var(--lg-padding)));
 
-  --lg-rim-top: rgb(255 255 255 / 0.88);
-  --lg-rim-bottom: rgb(255 255 255 / 0.48);
-  --lg-rim-flank: rgb(17 17 20 / 0.12);
+  --lg-rim-top: rgb(255 255 255 / 0.96);
+  --lg-rim-bottom: rgb(255 255 255 / 0.62);
+  --lg-rim-flank: rgb(13 13 16 / 0.16);
   --lg-rim-gradient: linear-gradient(
     180deg,
     var(--lg-rim-top) 0%,
@@ -69,14 +84,18 @@
     var(--lg-rim-flank) 68%,
     var(--lg-rim-bottom) 100%
   );
-  --lg-glint-pointer: rgb(255 255 255 / 0.42);
-  --lg-glint-diag: rgb(255 255 255 / 0.24);
-  --lg-nav-hover-bg: rgb(17 17 20 / 0.07);
-  --lg-nav-active-bg: rgb(255 255 255 / 0.82);
-  --lg-nav-active-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
-  --lg-shadow-lift: 0 12px 32px -8px rgb(17 17 20 / 0.16);
-  --lg-backdrop-scrim: rgb(17 17 20 / 0.28);
-  --lg-high-contrast-border: #111114;
+  --lg-glint-pointer: rgb(255 255 255 / 0.45);
+  --lg-glint-diag: rgb(255 255 255 / 0.26);
+  --lg-nav-hover-bg: rgb(13 13 16 / 0.08);
+  --lg-nav-active-bg: rgb(255 255 255 / 0.84);
+  --lg-nav-active-shadow: 0 2px 10px rgb(0 0 0 / 0.10);
+  --lg-btn-prominent-bg: rgb(17 17 20 / 0.86);
+  --lg-btn-prominent-hover: rgb(17 17 20 / 0.96);
+  --lg-btn-prominent-ink: #ffffff;
+  --lg-shadow-lift: 0 12px 32px -8px rgb(0 0 0 / 0.16), 0 2px 6px rgb(0 0 0 / 0.06);
+  --lg-shadow-btn: 0 4px 14px -4px rgb(0 0 0 / 0.12), 0 1px 2px rgb(0 0 0 / 0.06);
+  --lg-backdrop-scrim: rgb(13 13 16 / 0.30);
+  --lg-high-contrast-border: #0d0d10;
   --lg-mask-opaque: rgb(0 0 0);
 
   /* Переменная количества дней недели для Grid-шахматки */
@@ -109,52 +128,61 @@
 html[data-theme="dark"] {
   color-scheme: dark;
 
-  --brand-accent: #0070e0;
-  --brand-accent-hover: #1882eb;
-  --brand-accent-soft: #132842;
-  --brand-link: #64b2ff;
-  --brand-ink-on-accent: #ffffff;
+  --brand-accent: #f4f4f6;
+  --brand-accent-hover: #dcdce2;
+  --brand-accent-soft: #222228;
+  --brand-link: #f4f4f6;
+  --brand-ink-on-accent: #09090b;
 
-  --status-ok: #5cd68d;
-  --status-ok-bg: #132c1e;
-  --status-warn: #f5b942;
-  --status-warn-bg: #2f2310;
-  --status-danger: #ff7b7b;
-  --status-danger-bg: #361719;
+  --status-ok: #f4f4f6;
+  --status-ok-bg: #202026;
+  --status-warn: #e2e2e8;
+  --status-warn-bg: #1a1a1f;
+  --status-danger: #ffffff;
+  --status-danger-bg: #282830;
 
-  --bg-canvas: #0b0c10;
-  --bg-canvas-accent-1: #12213a;
-  --bg-canvas-accent-2: #181a2f;
-  --bg-card: #16181f;
-  --bg-card-muted: #1e212b;
-  --bg-control: #232734;
-  --border-subtle: #282c38;
-  --border-strong: #3b4154;
+  --bg-canvas: #070709;
+  --bg-canvas-accent-1: #24242b;
+  --bg-canvas-accent-2: #15151a;
+  --bg-canvas-grid: rgb(255 255 255 / 0.055);
+  --bg-card: #111114;
+  --bg-card-muted: #19191e;
+  --bg-control: #1f1f26;
+  --border-subtle: #26262e;
+  --border-strong: #3d3d48;
 
-  --text-primary: #f5f6fa;
-  --text-secondary: #c2c9d6;
-  --text-muted: #939cad;
+  --text-primary: #f5f5f7;
+  --text-secondary: #b4b4be;
+  --text-muted: #868692;
 
   --card-shadow: 0 4px 16px -4px rgb(0 0 0 / 0.45), 0 1px 3px rgb(0 0 0 / 0.35);
   --card-shadow-hover: 0 14px 32px -6px rgb(0 0 0 / 0.62), 0 2px 6px rgb(0 0 0 / 0.40);
 
-  --lg-surface: #1c1c20;
-  --lg-ink: #ffffff;
-  --lg-solid-bg: #1e1e24;
-  --lg-solid-border: rgb(255 255 255 / 0.20);
-  --lg-fill-regular: color-mix(in oklab, var(--lg-surface) 64%, transparent);
-  --lg-fill-thick: color-mix(in oklab, var(--lg-surface) 78%, transparent);
+  --lg-surface: #141418;
+  --lg-ink: #f5f5f7;
+  --lg-solid-bg: #18181d;
+  --lg-solid-border: rgb(255 255 255 / 0.22);
+  --lg-fill-regular: rgb(255 255 255 / 0.07);
+  --lg-fill-btn: rgb(255 255 255 / 0.06);
+  --lg-fill-btn-hover: rgb(255 255 255 / 0.14);
+  --lg-fill-thick: rgb(18 18 22 / 0.68);
+  --lg-contrast-refract: 1.08;
+  --lg-brightness-refract: 1.12;
 
-  --lg-rim-top: rgb(255 255 255 / 0.52);
-  --lg-rim-bottom: rgb(255 255 255 / 0.22);
-  --lg-rim-flank: rgb(0 0 0 / 0.38);
-  --lg-glint-pointer: rgb(255 255 255 / 0.18);
-  --lg-glint-diag: rgb(255 255 255 / 0.08);
+  --lg-rim-top: rgb(255 255 255 / 0.62);
+  --lg-rim-bottom: rgb(255 255 255 / 0.28);
+  --lg-rim-flank: rgb(255 255 255 / 0.10);
+  --lg-glint-pointer: rgb(255 255 255 / 0.22);
+  --lg-glint-diag: rgb(255 255 255 / 0.10);
   --lg-nav-hover-bg: rgb(255 255 255 / 0.10);
   --lg-nav-active-bg: rgb(255 255 255 / 0.18);
   --lg-nav-active-shadow: 0 2px 10px rgb(0 0 0 / 0.35);
-  --lg-shadow-lift: 0 16px 40px -10px rgb(0 0 0 / 0.55);
-  --lg-backdrop-scrim: rgb(0 0 0 / 0.55);
+  --lg-btn-prominent-bg: rgb(245 245 247 / 0.88);
+  --lg-btn-prominent-hover: rgb(255 255 255 / 0.96);
+  --lg-btn-prominent-ink: #09090b;
+  --lg-shadow-lift: 0 18px 44px -10px rgb(0 0 0 / 0.65), 0 2px 8px rgb(0 0 0 / 0.40);
+  --lg-shadow-btn: 0 6px 16px -4px rgb(0 0 0 / 0.45), 0 1px 2px rgb(0 0 0 / 0.30);
+  --lg-backdrop-scrim: rgb(0 0 0 / 0.56);
   --lg-high-contrast-border: #ffffff;
   --lg-mask-opaque: rgb(0 0 0);
 }
@@ -184,8 +212,10 @@ body {
   color: var(--text-primary);
   background-color: var(--bg-canvas);
   background-image:
-    radial-gradient(620px circle at 10% -5%, var(--bg-canvas-accent-1), transparent 65%),
-    radial-gradient(560px circle at 92% 12%, var(--bg-canvas-accent-2), transparent 60%);
+    radial-gradient(640px circle at 12% 0%, var(--bg-canvas-accent-1), transparent 65%),
+    radial-gradient(560px circle at 90% 18%, var(--bg-canvas-accent-2), transparent 62%),
+    repeating-linear-gradient(to right, var(--bg-canvas-grid) 0 1px, transparent 1px 44px),
+    repeating-linear-gradient(to bottom, var(--bg-canvas-grid) 0 1px, transparent 1px 44px);
   background-attachment: fixed;
   overflow-x: clip;
   -webkit-font-smoothing: antialiased;
@@ -266,7 +296,7 @@ textarea {
   border-radius: var(--radius-pill);
   text-decoration: none;
   color: inherit;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 14px;
   letter-spacing: -0.02em;
   white-space: nowrap;
@@ -294,9 +324,24 @@ textarea {
 }
 
 .top-nav__links {
+  position: relative;
   display: none;
   align-items: center;
   gap: 2px;
+}
+
+.top-nav__indicator {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: var(--radius-pill);
+  background: var(--lg-nav-active-bg);
+  box-shadow: var(--lg-nav-active-shadow);
+  pointer-events: none;
+  clip-path: inset(0px var(--ind-right, 100%) 0px var(--ind-left, 0px) round 999px);
+  transition:
+    clip-path var(--spring-snappy-dur) var(--spring-snappy),
+    opacity 160ms ease;
 }
 
 .top-nav__actions {
@@ -309,7 +354,7 @@ textarea {
 .weather-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   min-height: 40px;
   padding: 0 10px;
   border-radius: var(--radius-pill);
@@ -387,7 +432,7 @@ html[data-theme="dark"] .theme-icon-sun {
 .dashboard {
   width: min(100%, 1160px);
   margin: 0 auto;
-  padding: 86px 14px 24px;
+  padding: 88px 14px 24px;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -402,15 +447,15 @@ html[data-theme="dark"] .theme-icon-sun {
 .hero-eyebrow {
   margin: 0;
   font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--brand-link);
+  color: var(--text-muted);
 }
 
 .hero-intro h1 {
   margin: 0;
-  font-size: clamp(28px, 5vw, 40px);
+  font-size: clamp(28px, 5vw, 42px);
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.1;
@@ -445,19 +490,19 @@ html[data-theme="dark"] .theme-icon-sun {
 }
 
 .section-icon {
-  color: var(--brand-link);
+  color: var(--text-primary);
 }
 
 .section-title {
   margin: 0;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.25;
 }
 
 /* =========================================================
-   СЛОЙ 1: СПЛОШНЫЕ КОНТЕНТНЫЕ КАРТОЧКИ (БЕЗ СТЕКЛА)
+   СЛОЙ 1: СПЛОШНЫЕ КОНТЕНТНЫЕ КАРТОЧКИ (Ч/Б, БЕЗ СТЕКЛА)
    ========================================================= */
 
 .content-card,
@@ -483,7 +528,7 @@ html[data-theme="dark"] .theme-icon-sun {
 
 .card-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
@@ -495,7 +540,7 @@ html[data-theme="dark"] .theme-icon-sun {
 .card-head__title h3 {
   margin: 0;
   font-size: 17px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.015em;
 }
 
@@ -516,7 +561,7 @@ html[data-theme="dark"] .theme-icon-sun {
   gap: 16px;
 }
 
-/* Кнопки внутри контентного слоя */
+/* Кнопки внутри контентного слоя (получают прозрачное стекло .lg-btn-glass) */
 .btn-icon-soft {
   display: inline-flex;
   align-items: center;
@@ -524,13 +569,10 @@ html[data-theme="dark"] .theme-icon-sun {
   width: 40px;
   height: 40px;
   padding: 0;
-  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-pill);
-  background: var(--bg-card-muted);
   color: var(--text-primary);
   cursor: pointer;
   flex-shrink: 0;
-  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
 }
 
 .btn-icon-soft:disabled {
@@ -545,20 +587,17 @@ html[data-theme="dark"] .theme-icon-sun {
   gap: 6px;
   min-height: 40px;
   padding: 0 14px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-control);
-  background: var(--bg-card-muted);
+  border-radius: var(--radius-pill);
   color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
 }
 
 .btn-compact {
   min-height: 36px;
-  padding: 0 12px;
+  padding: 0 14px;
   font-size: 13px;
 }
 
@@ -566,17 +605,9 @@ html[data-theme="dark"] .theme-icon-sun {
   color: var(--status-danger);
 }
 
-@media (hover: hover) {
-  .btn-icon-soft:hover:not(:disabled),
-  .btn-secondary:hover:not(:disabled) {
-    background: var(--bg-control);
-    border-color: var(--border-strong);
-  }
-}
-
 .btn-icon-soft:active:not(:disabled),
 .btn-secondary:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: scale(0.96);
 }
 
 .btn-icon-soft:focus-visible,
@@ -589,9 +620,16 @@ html[data-theme="dark"] .theme-icon-sun {
   color: var(--brand-link);
   font-size: 14px;
   font-weight: 600;
-  text-decoration: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
   white-space: nowrap;
   transition: opacity 150ms ease;
+}
+
+@media (hover: hover) {
+  .text-link:hover {
+    opacity: 0.72;
+  }
 }
 
 .text-link:focus-visible {
@@ -618,14 +656,14 @@ html[data-theme="dark"] .theme-icon-sun {
 }
 
 .weather-hero-icon {
-  width: 40px;
-  height: 40px;
-  color: var(--brand-link);
+  width: 38px;
+  height: 38px;
+  color: var(--text-primary);
 }
 
 .weather-temp {
   font-size: 32px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1;
 }
@@ -652,9 +690,11 @@ html[data-theme="dark"] .theme-icon-sun {
 .status-pill {
   display: inline-flex;
   align-items: center;
+  align-self: flex-start;
   gap: 6px;
   padding: 6px 12px;
   border-radius: var(--radius-control);
+  border: 1px solid var(--border-subtle);
   font-size: 13px;
   font-weight: 600;
   line-height: 1.35;
@@ -702,7 +742,7 @@ html[data-theme="dark"] .theme-icon-sun {
   align-items: center;
   gap: 6px;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-secondary);
 }
 
@@ -723,7 +763,7 @@ html[data-theme="dark"] .theme-icon-sun {
 .today-duty-names {
   margin: 0;
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
   overflow-wrap: anywhere;
 }
@@ -750,7 +790,7 @@ html[data-theme="dark"] .theme-icon-sun {
 .teaser-head h3 {
   margin: 0;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .upcoming-list {
@@ -786,7 +826,7 @@ html[data-theme="dark"] .theme-icon-sun {
 }
 
 /* =========================================================
-   СЕГМЕНТИРОВАННЫЕ ПЕРЕКЛЮЧАТЕЛИ И СЕЛЕКТЫ
+   СЕГМЕНТИРОВАННЫЕ ПЕРЕКЛЮЧАТЕЛИ И КАСТОМНЫЕ SELECT
    ========================================================= */
 
 .segmented {
@@ -795,8 +835,6 @@ html[data-theme="dark"] .theme-icon-sun {
   gap: 4px;
   padding: 4px;
   border-radius: var(--radius-control);
-  background: var(--bg-control);
-  border: 1px solid var(--border-subtle);
 }
 
 .segmented__btn {
@@ -817,9 +855,9 @@ html[data-theme="dark"] .theme-icon-sun {
 }
 
 .segmented__btn.is-active {
-  background: var(--bg-card);
+  background: var(--lg-nav-active-bg);
   color: var(--text-primary);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.10);
+  box-shadow: var(--lg-nav-active-shadow);
 }
 
 .segmented__btn:active {
@@ -842,15 +880,30 @@ html[data-theme="dark"] .theme-icon-sun {
   background: var(--bg-control);
   color: var(--text-secondary);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
+}
+
+.select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.select-wrap--field {
+  width: 100%;
+}
+
+.month-select-wrap {
+  border-radius: var(--radius-control);
 }
 
 .month-select {
+  appearance: none;
   min-height: 40px;
-  padding: 0 12px;
-  border: 1px solid var(--border-subtle);
+  padding: 0 34px 0 14px;
+  border: 0;
   border-radius: var(--radius-control);
-  background: var(--bg-card);
+  background: transparent;
   color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
@@ -862,6 +915,21 @@ html[data-theme="dark"] .theme-icon-sun {
   outline-offset: 2px;
 }
 
+.field-select {
+  appearance: none;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+.select-chevron {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--text-secondary);
+}
+
 /* =========================================================
    ШАХМАТКА ДЕЖУРСТВ (CSS GRID)
    ========================================================= */
@@ -870,9 +938,11 @@ html[data-theme="dark"] .theme-icon-sun {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 12px;
+  align-items: stretch;
 }
 
 .duty-day-card {
+  height: 100%;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-card);
@@ -880,7 +950,6 @@ html[data-theme="dark"] .theme-icon-sun {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   gap: 12px;
   min-width: 0;
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
@@ -908,7 +977,12 @@ html[data-theme="dark"] .theme-icon-sun {
 .duty-day-card__name {
   margin: 0;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
+}
+
+.duty-day-card .btn-secondary {
+  margin-top: auto;
+  width: 100%;
 }
 
 .today-pill {
@@ -917,7 +991,7 @@ html[data-theme="dark"] .theme-icon-sun {
   background: var(--brand-accent);
   color: var(--brand-ink-on-accent);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -1007,7 +1081,7 @@ html[data-theme="dark"] .theme-icon-sun {
 .notice-card__title {
   margin: 0;
   font-size: 17px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.3;
   overflow-wrap: anywhere;
   min-width: 0;
@@ -1018,9 +1092,9 @@ html[data-theme="dark"] .theme-icon-sun {
   padding: 4px 10px;
   border-radius: var(--radius-pill);
   background: var(--brand-accent-soft);
-  color: var(--brand-link);
+  color: var(--text-primary);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -1072,7 +1146,7 @@ html[data-theme="dark"] .theme-icon-sun {
 .birthday-item__name {
   margin: 0;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 
@@ -1104,7 +1178,7 @@ html[data-theme="dark"] .theme-icon-sun {
 .empty-state__title {
   margin: 0;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .empty-state__desc {
@@ -1137,7 +1211,7 @@ html[data-theme="dark"] .theme-icon-sun {
 }
 
 .privacy-note__icon {
-  color: var(--status-ok);
+  color: var(--text-primary);
   margin-top: 2px;
 }
 
@@ -1260,7 +1334,13 @@ html[data-theme="dark"] .theme-icon-sun {
 .sheet-title {
   margin: 0;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
+}
+
+.sheet-close-btn {
+  width: 36px;
+  height: 36px;
+  margin-right: -4px;
 }
 
 .sheet-form {
@@ -1298,7 +1378,8 @@ html[data-theme="dark"] .theme-icon-sun {
 }
 
 .char-counter.is-over {
-  color: var(--status-danger);
+  color: var(--text-primary);
+  text-decoration: underline;
 }
 
 .field-input {
@@ -1325,11 +1406,16 @@ html[data-theme="dark"] .theme-icon-sun {
 }
 
 .field-input[aria-invalid="true"] {
-  border-color: var(--status-danger);
+  border-color: var(--text-primary);
+  box-shadow: 0 0 0 2px var(--brand-accent-soft);
 }
 
 .field-error {
   margin: 0;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--status-danger-bg);
+  border: 1px solid var(--border-strong);
   font-size: 13px;
   font-weight: 600;
   color: var(--status-danger);
@@ -1406,8 +1492,23 @@ html[data-theme="dark"] .theme-icon-sun {
     padding: 8px 24px calc(114px + env(safe-area-inset-bottom, 0px));
   }
 
+  .top-nav__inner {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+  }
+
+  .top-nav__inner .brand-link {
+    justify-self: start;
+  }
+
   .top-nav__links {
     display: inline-flex;
+    justify-self: center;
+  }
+
+  .top-nav__actions {
+    justify-self: end;
   }
 
   .overview-grid {
@@ -1437,10 +1538,15 @@ html[data-theme="dark"] .theme-icon-sun {
   .workspace-split {
     grid-template-columns: 1.45fr 1fr;
   }
+
+  .workspace-split .section-head {
+    min-height: 46px;
+    align-items: center;
+  }
 }
 
 /* =========================================================
-   СЛОЙ 3: APPLE LIQUID GLASS — TIER 0 / TIER 1 / TIER 2
+   СЛОЙ 3: ПРОЗРАЧНОЕ IOS LIQUID GLASS (TIER 0 / 1 / 2)
    ========================================================= */
 
 .lg-surface {
@@ -1455,10 +1561,23 @@ html[data-theme="dark"] .theme-icon-sun {
   transition: transform var(--spring-snappy-dur) var(--spring-snappy);
 }
 
-@supports (corner-shape: squircle) {
-  .lg-surface:not(.lg-pill) {
-    corner-shape: squircle;
-  }
+.lg-surface.lg-btn-glass {
+  border-radius: var(--radius-pill);
+  box-shadow: var(--lg-shadow-btn);
+  transition:
+    transform var(--spring-snappy-dur) var(--spring-snappy),
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.lg-surface.lg-btn-glass.segmented,
+.lg-surface.lg-btn-glass.month-select-wrap {
+  border-radius: var(--radius-control);
+}
+
+.lg-btn-glass > * {
+  position: relative;
+  z-index: 2;
 }
 
 .lg-pill {
@@ -1489,7 +1608,7 @@ html[data-theme="dark"] .theme-icon-sun {
   animation: sheet-enter var(--spring-smooth-dur) var(--spring-smooth) both;
 }
 
-/* Tier 1: Кроссбраузерное стекло (Safari, Firefox, Chromium) */
+/* Tier 1: Кроссбраузерное прозрачное стекло (Safari, Firefox, Chromium) */
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
   .lg-surface.lg-regular {
     border-color: transparent;
@@ -1502,18 +1621,35 @@ html[data-theme="dark"] .theme-icon-sun {
       var(--lg-shadow-lift);
   }
 
+  .lg-surface.lg-btn-glass {
+    border-color: transparent;
+    background: var(--lg-fill-btn);
+    -webkit-backdrop-filter: blur(var(--lg-blur-btn)) saturate(var(--lg-saturate));
+    backdrop-filter: blur(var(--lg-blur-btn)) saturate(var(--lg-saturate));
+    box-shadow:
+      inset 0 1px 0 var(--lg-rim-top),
+      inset 0 -1px 0 var(--lg-rim-bottom),
+      var(--lg-shadow-btn);
+  }
+
+  @media (hover: hover) {
+    .lg-surface.lg-btn-glass:not(.segmented):not(.month-select-wrap):hover:not(:disabled) {
+      background: var(--lg-fill-btn-hover);
+    }
+  }
+
   .lg-surface.lg-thick {
     border-color: transparent;
     background: var(--lg-fill-thick);
-    -webkit-backdrop-filter: blur(var(--lg-blur-thick)) saturate(150%);
-    backdrop-filter: blur(var(--lg-blur-thick)) saturate(150%);
+    -webkit-backdrop-filter: blur(var(--lg-blur-thick)) saturate(140%);
+    backdrop-filter: blur(var(--lg-blur-thick)) saturate(140%);
     box-shadow:
       inset 0 1px 0 var(--lg-rim-top),
       inset 0 -1px 0 var(--lg-rim-bottom),
       var(--lg-shadow-lift);
   }
 
-  /* 1px френелевский ободок без mix-blend-mode */
+  /* Единая 1px френелевская кромка без mix-blend-mode и двойных дуг */
   .lg-surface::before {
     content: "";
     position: absolute;
@@ -1557,12 +1693,17 @@ html[data-theme="dark"] .theme-icon-sun {
 
 /* Tier 2: Живое преломление по Снеллиусу (добавляется JS строго в Chromium) */
 .lg-surface[data-lg-refract].is-refracting {
-  backdrop-filter: var(--lg-filter-url) blur(var(--lg-blur-refract)) saturate(170%) brightness(1.04);
+  backdrop-filter:
+    var(--lg-filter-url)
+    blur(var(--lg-blur-refract))
+    contrast(var(--lg-contrast-refract))
+    brightness(var(--lg-brightness-refract));
 }
 
 /* Внутренние контролы без вложенного backdrop-filter */
 .lg-nav-item {
   position: relative;
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1588,15 +1729,13 @@ html[data-theme="dark"] .theme-icon-sun {
 }
 
 @media (hover: hover) {
-  .lg-nav-item:hover {
+  .lg-nav-item:not(.is-active):hover {
     background: var(--lg-nav-hover-bg);
   }
 }
 
-.lg-nav-item.is-active {
-  background: var(--lg-nav-active-bg);
-  box-shadow: var(--lg-nav-active-shadow);
-  view-transition-name: lg-active-pill;
+.top-nav__links .lg-nav-item.is-active {
+  font-weight: 600;
 }
 
 .lg-nav-item:active,
@@ -1604,14 +1743,14 @@ html[data-theme="dark"] .theme-icon-sun {
   transform: scale(0.96);
 }
 
-/* Главная акцентная кнопка CTA: сплошная заливка + автоконтраст */
+/* Главная монохромная кнопка CTA внутри стеклянного дока или модального окна */
 .lg-btn-prominent {
   min-height: 40px;
   padding: 0 18px;
   border: 0;
   border-radius: var(--lg-radius-inner);
-  background: var(--brand-accent);
-  color: var(--brand-ink-on-accent);
+  background: var(--lg-btn-prominent-bg);
+  color: var(--lg-btn-prominent-ink);
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -1620,15 +1759,9 @@ html[data-theme="dark"] .theme-icon-sun {
     background-color 180ms ease;
 }
 
-@supports (color: contrast-color(red)) {
-  .lg-btn-prominent {
-    color: contrast-color(var(--brand-accent));
-  }
-}
-
 @media (hover: hover) {
   .lg-btn-prominent:hover {
-    background: var(--brand-accent-hover);
+    background: var(--lg-btn-prominent-hover);
   }
 }
 
@@ -1708,6 +1841,7 @@ html[data-theme="dark"] .theme-icon-sun {
   .lg-surface,
   .lg-surface.lg-regular,
   .lg-surface.lg-thick,
+  .lg-surface.lg-btn-glass,
   .lg-surface[data-lg-refract].is-refracting {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
@@ -1727,6 +1861,7 @@ html[data-theme="dark"] .theme-icon-sun {
 :root[data-glass="off"] .lg-surface,
 :root[data-glass="off"] .lg-surface.lg-regular,
 :root[data-glass="off"] .lg-surface.lg-thick,
+:root[data-glass="off"] .lg-surface.lg-btn-glass,
 :root[data-glass="off"] .lg-surface[data-lg-refract].is-refracting {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
@@ -1743,6 +1878,7 @@ html[data-theme="dark"] .theme-icon-sun {
 
 @media (forced-colors: active) {
   .lg-surface,
+  .lg-surface.lg-btn-glass,
   .lg-surface[data-lg-refract].is-refracting {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
@@ -1774,13 +1910,20 @@ html[data-theme="dark"] .theme-icon-sun {
   .btn-icon-soft,
   .btn-secondary,
   .segmented__btn,
-  .field-input {
+  .field-input,
+  .top-nav__indicator {
     transition: opacity 150ms ease !important;
+  }
+
+  .top-nav__indicator {
+    transition: none !important;
   }
 
   .lg-nav-item:active,
   .lg-btn-prominent:active,
   .lg-icon-btn:active,
+  .btn-icon-soft:active,
+  .btn-secondary:active,
   .duty-day-card:hover,
   .notice-card:hover {
     transform: none !important;
