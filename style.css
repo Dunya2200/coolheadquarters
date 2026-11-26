@@ -86,9 +86,9 @@
   );
   --lg-glint-pointer: rgb(255 255 255 / 0.45);
   --lg-glint-diag: rgb(255 255 255 / 0.26);
-  --lg-nav-hover-bg: rgb(13 13 16 / 0.08);
-  --lg-nav-active-bg: rgb(255 255 255 / 0.84);
-  --lg-nav-active-shadow: 0 2px 10px rgb(0 0 0 / 0.10);
+  --lg-nav-hover-bg: rgb(13 13 16 / 0.06);
+  --lg-nav-active-bg: rgb(13 13 16 / 0.12);
+  --lg-nav-active-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
   --lg-btn-prominent-bg: rgb(17 17 20 / 0.86);
   --lg-btn-prominent-hover: rgb(17 17 20 / 0.96);
   --lg-btn-prominent-ink: #ffffff;
@@ -898,9 +898,12 @@ html[data-theme="dark"] .theme-icon-sun {
 }
 
 .month-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
   appearance: none;
+  width: 100%;
   min-height: 40px;
-  padding: 0 34px 0 14px;
+  padding: 0 36px 0 14px;
   border: 0;
   border-radius: var(--radius-control);
   background: transparent;
@@ -910,14 +913,31 @@ html[data-theme="dark"] .theme-icon-sun {
   cursor: pointer;
 }
 
+select option {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.month-select::-ms-expand,
+.field-select::-ms-expand {
+  display: none;
+}
+
+.month-select::picker-icon,
+.field-select::picker-icon {
+  display: none;
+}
+
 .month-select:focus-visible {
   outline: 2px solid var(--brand-link);
   outline-offset: 2px;
 }
 
 .field-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
   appearance: none;
-  padding-right: 36px;
+  background-image: none;
   cursor: pointer;
 }
 
@@ -925,6 +945,7 @@ html[data-theme="dark"] .theme-icon-sun {
   position: absolute;
   right: 12px;
   top: 50%;
+  z-index: 3;
   transform: translateY(-50%);
   pointer-events: none;
   color: var(--text-secondary);
@@ -1394,6 +1415,10 @@ html[data-theme="dark"] .theme-icon-sun {
   transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
+.field-input.field-select {
+  padding-right: 38px;
+}
+
 .field-textarea {
   min-height: 92px;
   resize: vertical;
@@ -1575,7 +1600,7 @@ html[data-theme="dark"] .theme-icon-sun {
   border-radius: var(--radius-control);
 }
 
-.lg-btn-glass > * {
+.lg-btn-glass > *:not(.select-chevron) {
   position: relative;
   z-index: 2;
 }
