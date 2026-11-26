@@ -1318,8 +1318,346 @@ function initApp() {
     });
   }
 
-  if (noticeTitleInput) noticeTitleInput.addEventListener("input", syncCounters);
-  if (noticeBodyInput) noticeBodyInput.addEventListener("input", syncCounters);
+  function showFieldError(inputEl, errorEl, message) {
+    if (inputEl) inputEl.setAttribute("aria-invalid", "true");
+    if (errorEl) {
+      errorEl.textContent = message;
+      errorEl.hidden = false;
+    }
+  }
+
+  function hasPhoneOrAddress(value) {
+    const clean = String(value || "").trim();
+    if (!clean) return false;
+    const hasPhone =
+      /(\+7|8)[\s().-]*\d{3}[\s().-]*\d{3}[\s().-]*\d{2}[\s().-]*\d{2}/.test(clean) ||
+      /(?:\d[\s()-]*){7,}/.test(clean);
+    const hasAddress =
+      /(?:^|[\s,;.(])(?:ул\.?|улица|просп\.?|пр-т|проспект|пер\.?|переулок|бул\.?|бульвар|шоссе|подъезд|кв\.?|квартира|дом|д\.\s*\d)/iu.test(
+        clean
+      );
+    return hasPhone || hasAddress;
+  }
+
+  function isValidIsoDate(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const [y, m, d] = value.split("-").map(Number);
+    const dt = new Date(y, m - 1, d);
+    return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+  }
+
+  if (noticeTitleInput) {
+    noticeTitleInput.addEventListener("input", () => {
+      syncCounters();
+      clearFieldError(noticeTitleInput, noticeTitleErrorEl);
+    });
+  }
+  if (noticeBodyInput) {
+    noticeBodyInput.addEventListener("input", () => {
+      syncCounters();
+      clearFieldError(noticeBodyInput, noticeBodyErrorEl);
+    });
+  }
+  if (noticeDateInput) {
+    noticeDateInput.addEventListener("input", () =>
+      clearFieldError(noticeDateInput, noticeDateErrorEl)
+    );
+  }
+
+  if (dutyFirstInput) {
+    dutyFirstInput.addEventListener("input", () =>
+      clearFieldError(dutyFirstInput, dutyFirstErrorEl)
+    );
+  }
+  if (dutySecondInput) {
+    dutySecondInput.addEventListener("input", () =>
+      clearFieldError(dutySecondInput, dutySecondErrorEl)
+    );
+  }
+
+  if (birthdayNameInput) {
+    birthdayNameInput.addEventListener("input", () =>
+      clearFieldError(birthdayNameInput, birthdayNameErrorEl)
+    );
+  }
+  if (birthdayClassInput) {
+    birthdayClassInput.addEventListener("input", () =>
+      clearFieldError(birthdayClassInput, birthdayClassErrorEl)
+    );
+  }
+  if (birthdayDayInput) {
+    birthdayDayInput.addEventListener("input", () =>
+      clearFieldError(birthdayDayInput, birthdayDateErrorEl)
+    );
+  }
+
+  if (noticeForm) {
+    noticeForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      clearAllFormErrors();
+
+      const editId = noticeEditIdInput.value.trim();
+      const title = noticeTitleInput.value.trim();
+      const body = noticeBodyInput.value.trim();
+      const date = noticeDateInput.value.trim();
+      let firstInvalid = null;
+
+      if (!title) {
+        showFieldError(
+          noticeTitleInput,
+          noticeTitleErrorEl,
+          "Введите заголовок объявления, чтобы одноклассники сразу поняли тему."
+        );
+        firstInvalid = firstInvalid || noticeTitleInput;
+      } else if (title.length > NOTICE_TITLE_LIMIT) {
+        showFieldError(
+          noticeTitleInput,
+          noticeTitleErrorEl,
+          `Сократите заголовок до ${NOTICE_TITLE_LIMIT} символов (сейчас ${title.length}).`
+        );
+        firstInvalid = firstInvalid || noticeTitleInput;
+      } else if (hasPhoneOrAddress(title)) {
+        showFieldError(
+          noticeTitleInput,
+          noticeTitleErrorEl,
+          "Уберите номер телефона или домашний адрес из заголовка."
+        );
+        firstInvalid = firstInvalid || noticeTitleInput;
+      }
+
+      if (!body) {
+        showFieldError(
+          noticeBodyInput,
+          noticeBodyErrorEl,
+          "Добавьте подробности объявления, например номер кабинета или время."
+        );
+        firstInvalid = firstInvalid || noticeBodyInput;
+      } else if (body.length > NOTICE_BODY_LIMIT) {
+        showFieldError(
+          noticeBodyInput,
+          noticeBodyErrorEl,
+          `Сократите текст объявления до ${NOTICE_BODY_LIMIT} символов (сейчас ${body.length}).`
+        );
+        firstInvalid = firstInvalid || noticeBodyInput;
+      } else if (hasPhoneOrAddress(body)) {
+        showFieldError(
+          noticeBodyInput,
+          noticeBodyErrorEl,
+          "Уберите номер телефона или домашний адрес из текста объявления."
+        );
+        firstInvalid = firstInvalid || noticeBodyInput;
+      }
+
+      if (!isValidIsoDate(date)) {
+        showFieldError(
+          noticeDateInput,
+          noticeDateErrorEl,
+          "Укажите корректную дату события."
+        );
+        firstInvalid = firstInvalid || noticeDateInput;
+      }
+
+      if (firstInvalid) {
+        firstInvalid.focus();
+        return;
+      }
+
+      if (editId) {
+        state.notices = state.notices.map((item) =>
+          item.id === editId ? { ...item, title, body, date } : item
+        );
+        latestNoticeId = editId;
+        announce("Объявление обновлено");
+      } else {
+        const newId = `n-${Date.now()}`;
+        state.notices.unshift({
+          id: newId,
+          title,
+          body,
+          date,
+          archived: false
+        });
+        latestNoticeId = newId;
+        noticeFilter = "active";
+        announce("Новое объявление добавлено");
+      }
+
+      window.notices = state.notices;
+      saveState(state);
+      noticeForm.reset();
+      noticeEditIdInput.value = "";
+      syncCounters();
+      renderAll();
+      closeSheet();
+    });
+  }
+
+  if (dutyForm) {
+    dutyForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      clearAllFormErrors();
+
+      const weekday = Number(dutyWeekdaySelect.value);
+      const firstName = dutyFirstInput.value.trim();
+      const secondName = dutySecondInput.value.trim();
+      let firstInvalid = null;
+
+      if (!Number.isInteger(weekday) || weekday < 1 || weekday > 6) {
+        showFieldError(
+          dutyWeekdaySelect,
+          dutyWeekdayErrorEl,
+          "Выберите учебный день от понедельника до субботы."
+        );
+        firstInvalid = firstInvalid || dutyWeekdaySelect;
+      }
+
+      if (!firstName) {
+        showFieldError(
+          dutyFirstInput,
+          dutyFirstErrorEl,
+          "Укажите имя первого дежурного."
+        );
+        firstInvalid = firstInvalid || dutyFirstInput;
+      } else if (firstName.length > 40) {
+        showFieldError(
+          dutyFirstInput,
+          dutyFirstErrorEl,
+          "Сократите имя первого дежурного до 40 символов."
+        );
+        firstInvalid = firstInvalid || dutyFirstInput;
+      } else if (hasPhoneOrAddress(firstName)) {
+        showFieldError(
+          dutyFirstInput,
+          dutyFirstErrorEl,
+          "Нельзя указывать телефон или адрес в имени дежурного."
+        );
+        firstInvalid = firstInvalid || dutyFirstInput;
+      }
+
+      if (!secondName) {
+        showFieldError(
+          dutySecondInput,
+          dutySecondErrorEl,
+          "Укажите имя второго дежурного (на каждый день назначается пара)."
+        );
+        firstInvalid = firstInvalid || dutySecondInput;
+      } else if (secondName.length > 40) {
+        showFieldError(
+          dutySecondInput,
+          dutySecondErrorEl,
+          "Сократите имя второго дежурного до 40 символов."
+        );
+        firstInvalid = firstInvalid || dutySecondInput;
+      } else if (hasPhoneOrAddress(secondName)) {
+        showFieldError(
+          dutySecondInput,
+          dutySecondErrorEl,
+          "Нельзя указывать телефон или адрес в имени дежурного."
+        );
+        firstInvalid = firstInvalid || dutySecondInput;
+      }
+
+      if (firstInvalid) {
+        firstInvalid.focus();
+        return;
+      }
+
+      state.duties = state.duties.map((entry) =>
+        entry.weekday === weekday ? { weekday, names: [firstName, secondName] } : entry
+      );
+      if (weekday === 6 && state.settings.workdays === 5) {
+        state.settings.workdays = 6;
+      }
+
+      saveState(state);
+      dutyForm.reset();
+      renderAll();
+      closeSheet();
+      announce(`Дежурные на ${WEEKDAY_NAMES[weekday].toLowerCase()} обновлены`);
+    });
+  }
+
+  if (birthdayForm) {
+    birthdayForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      clearAllFormErrors();
+
+      const name = birthdayNameInput.value.trim();
+      const className = birthdayClassInput.value.trim();
+      const month = Number(birthdayMonthInput.value);
+      const day = Number(birthdayDayInput.value.trim());
+      const maxDays = getDaysInMonth(month);
+      let firstInvalid = null;
+
+      if (!name) {
+        showFieldError(
+          birthdayNameInput,
+          birthdayNameErrorEl,
+          "Введите имя и инициал одноклассника (например, София К.)."
+        );
+        firstInvalid = firstInvalid || birthdayNameInput;
+      } else if (name.length > 40) {
+        showFieldError(
+          birthdayNameInput,
+          birthdayNameErrorEl,
+          "Сократите имя до 40 символов."
+        );
+        firstInvalid = firstInvalid || birthdayNameInput;
+      } else if (hasPhoneOrAddress(name)) {
+        showFieldError(
+          birthdayNameInput,
+          birthdayNameErrorEl,
+          "Уберите номер телефона или домашний адрес из имени."
+        );
+        firstInvalid = firstInvalid || birthdayNameInput;
+      }
+
+      if (className.length > 10) {
+        showFieldError(
+          birthdayClassInput,
+          birthdayClassErrorEl,
+          "Сократите обозначение класса до 10 символов (например, 10А)."
+        );
+        firstInvalid = firstInvalid || birthdayClassInput;
+      } else if (className && hasPhoneOrAddress(className)) {
+        showFieldError(
+          birthdayClassInput,
+          birthdayClassErrorEl,
+          "В поле класса нельзя указывать телефон или адрес."
+        );
+        firstInvalid = firstInvalid || birthdayClassInput;
+      }
+
+      if (!Number.isInteger(month) || month < 1 || month > 12 || !Number.isInteger(day) || day < 1 || day > maxDays) {
+        showFieldError(
+          birthdayDayInput,
+          birthdayDateErrorEl,
+          `Укажите число от 1 до ${maxDays} для выбранного месяца.`
+        );
+        firstInvalid = firstInvalid || birthdayDayInput;
+      }
+
+      if (firstInvalid) {
+        firstInvalid.focus();
+        return;
+      }
+
+      const md = `${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      state.birthdays.push({
+        id: `b-${Date.now()}`,
+        name,
+        className,
+        md
+      });
+      selectedBirthdayMonth = month;
+
+      saveState(state);
+      birthdayForm.reset();
+      renderAll();
+      closeSheet();
+      announce(`Добавлен день рождения: ${name}`);
+    });
+  }
 
   populateMonthSelects();
   renderAll();
