@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light" data-glass="on">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Классный штаб — панель совета класса</title>
+  <link rel="icon" type="image/svg+xml" href="img/logo.svg">
+  <script>
+    (function () {
+      const STORAGE_KEY = "p05-class-hq-v1";
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        const settings = parsed && typeof parsed === "object" ? parsed.settings : null;
+        if (settings && (settings.theme === "dark" || settings.theme === "light")) {
+          document.documentElement.setAttribute("data-theme", settings.theme);
+        }
+        if (settings && (settings.glass === "off" || settings.glass === "on")) {
+          document.documentElement.setAttribute("data-glass", settings.glass);
+        }
+      } catch (err) {
+        console.warn("Не удалось прочитать настройки темы до отрисовки:", err);
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Хост SVG-фильтров для Tier 2 (строго в основном документе и без display: none) -->
+  <svg id="lg-svg-host" width="0" height="0" aria-hidden="true" style="position: absolute; width: 0; height: 0; pointer-events: none; overflow: hidden;">
+    <defs id="lg-filter-defs"></defs>
+  </svg>
+
+  <!-- Единый векторный спрайт (22 иконки в геометрии Apple SF Symbols, без эмодзи) -->
+  <svg class="icon-sprite" width="0" height="0" aria-hidden="true" style="position: absolute; width: 0; height: 0; pointer-events: none; overflow: hidden;">
+    <defs>
+      <symbol id="icon-weather-sun" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="4.25" />
+        <path d="M12 2.5v2.25M12 19.25v2.25M4.75 4.75l1.6 1.6M17.65 17.65l1.6 1.6M2.5 12h2.25M19.25 12h2.25M4.75 19.25l1.6-1.6M17.65 6.35l1.6-1.6" />
+      </symbol>
+      <symbol id="icon-weather-partly" viewBox="0 0 24 24">
+        <path d="M8.5 11.5a3.5 3.5 0 1 1 5.8-2.6" />
+        <path d="M10.5 3.5v1.5M4.8 5.8l1.1 1.1M3 11.5h1.5M15.7 5.8l-1.1 1.1" />
+        <path d="M8.5 19.5h8.25a3.75 3.75 0 0 0 .45-7.47 5.25 5.25 0 0 0-10.1 1.22A3.25 3.25 0 0 0 8.5 19.5Z" />
+      </symbol>
+      <symbol id="icon-weather-cloud" viewBox="0 0 24 24">
+        <path d="M7.5 18.5h9.5a4 4 0 0 0 .4-7.98 5.5 5.5 0 0 0-10.56 1.24A3.5 3.5 0 0 0 7.5 18.5Z" />
+      </symbol>
+      <symbol id="icon-weather-rain" viewBox="0 0 24 24">
+        <path d="M7 15.5h10a3.75 3.75 0 0 0 .38-7.48 5.25 5.25 0 0 0-10.08 1.2A3.25 3.25 0 0 0 7 15.5Z" />
+        <path d="M8.5 18.5l-1 2.5M12.5 18.5l-1 2.5M16.5 18.5l-1 2.5" />
+      </symbol>
+      <symbol id="icon-weather-snow" viewBox="0 0 24 24">
+        <path d="M7 15h10a3.75 3.75 0 0 0 .38-7.48 5.25 5.25 0 0 0-10.08 1.2A3.25 3.25 0 0 0 7 15Z" />
+        <path d="M8.5 18.5v2M7.5 19.5h2M12.5 18.5v2M11.5 19.5h2M16.5 18.5v2M15.5 19.5h2" />
+      </symbol>
+      <symbol id="icon-weather-storm" viewBox="0 0 24 24">
+        <path d="M7 15h10a3.75 3.75 0 0 0 .38-7.48 5.25 5.25 0 0 0-10.08 1.2A3.25 3.25 0 0 0 7 15Z" />
+        <path d="M13 15l-2.25 3.75h2.75L11.5 22" />
+      </symbol>
+      <symbol id="icon-megaphone" viewBox="0 0 24 24">
+        <path d="M18 4.5v11l-9-3.25H5.25A2.25 2.25 0 0 1 3 10v-.5a2.25 2.25 0 0 1 2.25-2.25H9L18 4.5Z" />
+        <path d="M6.5 12.25l1.25 6.25h2.25l-.9-5.3" />
+        <path d="M20.5 8.5v3" />
+      </symbol>
+      <symbol id="icon-calendar-grid" viewBox="0 0 24 24">
+        <rect x="3.5" y="4.5" width="17" height="16" rx="3" />
+        <path d="M3.5 9.5h17M8 2.75v3.5M16 2.75v3.5M8 13.5h2M14 13.5h2M8 17h2M14 17h2" />
+      </symbol>
+      <symbol id="icon-gift" viewBox="0 0 24 24">
+        <rect x="4" y="10" width="16" height="10.5" rx="2" />
+        <path d="M3 7.5h18v2.5H3zM12 7.5v13" />
+        <path d="M12 7.5H8.75a2.25 2.25 0 1 1 0-4.5C10.75 3 12 7.5 12 7.5Zm0 0h3.25a2.25 2.25 0 1 0 0-4.5C13.25 3 12 7.5 12 7.5Z" />
+      </symbol>
+      <symbol id="icon-sparkles-quote" viewBox="0 0 24 24">
+        <path d="M5 12.5h4.5v4.5H5v-4.5Zm0 0c0-3.25 1.5-5.25 4-6.25M14.5 12.5H19v4.5h-4.5v-4.5Zm0 0c0-3.25 1.5-5.25 4-6.25" />
+      </symbol>
+      <symbol id="icon-plus" viewBox="0 0 24 24">
+        <path d="M12 5v14M5 12h14" />
+      </symbol>
+      <symbol id="icon-edit" viewBox="0 0 24 24">
+        <path d="M15.75 4.75l3.5 3.5-10 10H5.75v-3.5l10-10Z" />
+        <path d="M13.75 6.75l3.5 3.5" />
+      </symbol>
+      <symbol id="icon-archive" viewBox="0 0 24 24">
+        <rect x="3.5" y="4.5" width="17" height="4" rx="1.25" />
+        <path d="M5 8.5v9.5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5M10 12.5h4" />
+      </symbol>
+      <symbol id="icon-trash" viewBox="0 0 24 24">
+        <path d="M4.5 6.5h15M9.5 6.5v-2a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v2M6.5 6.5l.8 12.2a2 2 0 0 0 2 1.8h5.4a2 2 0 0 0 2-1.8l.8-12.2M10 10.5v6M14 10.5v6" />
+      </symbol>
+      <symbol id="icon-refresh" viewBox="0 0 24 24">
+        <path d="M20 5.5v4.75h-4.75" />
+        <path d="M19.5 10.25A7.5 7.5 0 1 0 18.2 16.5" />
+      </symbol>
+      <symbol id="icon-close" viewBox="0 0 24 24">
+        <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
+      </symbol>
+      <symbol id="icon-sun" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 3v2M12 19v2M5.64 5.64l1.42 1.42M16.94 16.94l1.42 1.42M3 12h2M19 12h2M5.64 18.36l1.42-1.42M16.94 7.06l1.42-1.42" />
+      </symbol>
+      <symbol id="icon-moon" viewBox="0 0 24 24">
+        <path d="M19.5 14.5A7.5 7.5 0 0 1 9.5 4.5a7.5 7.5 0 1 0 10 10Z" />
+      </symbol>
+      <symbol id="icon-layers-opaque" viewBox="0 0 24 24">
+        <path d="M12 4.5 3.5 9 12 13.5 20.5 9 12 4.5Z" />
+        <path d="M3.5 13l8.5 4.5 8.5-4.5M3.5 17l8.5 4.5 8.5-4.5" />
+      </symbol>
+      <symbol id="icon-users" viewBox="0 0 24 24">
+        <circle cx="9" cy="8.5" r="3" />
+        <path d="M3.5 18.5a5.5 5.5 0 0 1 11 0" />
+        <circle cx="16.5" cy="9.5" r="2.25" />
+        <path d="M15.5 14.25a4.5 4.5 0 0 1 5 4.25" />
+      </symbol>
+      <symbol id="icon-shield-check" viewBox="0 0 24 24">
+        <path d="M12 3.25 4.75 6.25v5.5c0 4.65 3.05 7.85 7.25 9 4.2-1.15 7.25-4.35 7.25-9v-5.5L12 3.25Z" />
+        <path d="M8.75 12l2.25 2.25 4.25-4.5" />
+      </symbol>
+      <symbol id="icon-wifi-off" viewBox="0 0 24 24">
+        <path d="M3.5 3.5l17 17" />
+        <path d="M8.75 16.5a4.75 4.75 0 0 1 6.5 0M5.5 12.75a9.25 9.25 0 0 1 4.25-2.1M14.5 10.65a9.25 9.25 0 0 1 4 2.1M2.75 9a13.75 13.75 0 0 1 4.1-2.55M11.6 5.65c3.55-.1 7.05 1.05 9.65 3.35" />
+        <circle cx="12" cy="19.5" r="0.85" fill="currentColor" stroke="none" />
+      </symbol>
+    </defs>
+  </svg>
+
+  <!-- Прогрессивный край прокрутки (прямой потомок body без Backdrop Root) -->
+  <div class="lg-scroll-edge-top" aria-hidden="true">
+    <div class="lg-edge-blur-1"></div>
+    <div class="lg-edge-blur-2"></div>
+    <div class="lg-edge-tint"></div>
+  </div>
+
+  <!-- Слой 3: Верхняя плавающая навигация (Liquid Glass .lg-regular) -->
+  <header class="site-header">
+    <nav class="lg-surface lg-regular lg-pill top-nav" data-lg-refract data-lg-bezel="20" aria-label="Основная навигация штаба">
+      <div class="lg-content top-nav__inner">
+        <a href="#overview" class="brand-link" aria-label="Классный штаб — к сводке">
+          <img src="img/logo.svg" alt="" class="brand-logo">
+          <span class="brand-name">Классный штаб</span>
+        </a>
+
+        <div class="top-nav__links">
+          <a href="#overview" class="lg-nav-item is-active" data-nav-section="overview">Сводка</a>
+          <a href="#duties" class="lg-nav-item" data-nav-section="duties">Дежурные</a>
+          <a href="#notices" class="lg-nav-item" data-nav-section="notices">Объявления</a>
+          <a href="#birthdays" class="lg-nav-item" data-nav-section="birthdays">ДР</a>
+        </div>
+
+        <div class="top-nav__actions">
+          <a href="#overview" class="weather-chip" id="header-weather-chip" aria-label="Погода на завтра в Москве">
+            <svg class="icon weather-chip__icon" id="header-weather-icon" aria-hidden="true">
+              <use href="#icon-weather-partly"></use>
+            </svg>
+            <span id="header-weather-text">--°</span>
+          </a>
+
+          <button type="button" class="lg-icon-btn" id="lg-reduce-toggle" aria-pressed="false" aria-label="Уменьшить прозрачность" title="Уменьшить прозрачность стекла">
+            <svg class="icon" aria-hidden="true">
+              <use href="#icon-layers-opaque"></use>
+            </svg>
+          </button>
+
+          <button type="button" class="lg-icon-btn" id="theme-toggle" aria-label="Включить тёмную тему" title="Переключить тему">
+            <svg class="icon theme-icon-moon" aria-hidden="true">
+              <use href="#icon-moon"></use>
+            </svg>
+            <svg class="icon theme-icon-sun" aria-hidden="true">
+              <use href="#icon-sun"></use>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main class="dashboard" id="overview">
+    <div class="hero-intro">
+      <p class="hero-eyebrow" id="today-date-label">Загрузка даты...</p>
+      <h1>Классный штаб</h1>
+      <p class="hero-lead">Единый экран совета класса: кто дежурит сегодня и на неделе, объявления без потерь в чатах, ближайшие дни рождения и прогноз в Москве на завтра для линейки.</p>
+    </div>
+
+    <!-- Слой 1 и 2: Сводка дня (сплошные поверхности, без стекла) -->
+    <section class="panel-section overview-section" aria-labelledby="overview-heading">
+      <div class="section-head">
+        <h2 id="overview-heading" class="section-title">Сводка на сегодня и завтра</h2>
+      </div>
+
+      <div class="overview-grid">
+        <article class="content-card weather-card">
+          <div class="card-head">
+            <div class="card-head__title">
+              <h3>Погода на завтра · Москва</h3>
+              <p class="card-subtitle" id="weather-updated-label">Проверка прогноза...</p>
+            </div>
+            <button type="button" class="btn-icon-soft" id="weather-refresh-btn" aria-label="Обновить прогноз погоды">
+              <svg class="icon" aria-hidden="true">
+                <use href="#icon-refresh"></use>
+              </svg>
+            </button>
+          </div>
+          <div id="weather-body" class="weather-body" aria-live="polite"></div>
+
+          <div class="card-divider"></div>
+
+          <div class="quote-block">
+            <div class="card-head">
+              <div class="card-head__title">
+                <span class="quote-kicker">
+                  <svg class="icon icon--sm" aria-hidden="true">
+                    <use href="#icon-sparkles-quote"></use>
+                  </svg>
+                  <span>Цитата на линейку</span>
+                </span>
+              </div>
+              <button type="button" class="btn-icon-soft" id="quote-refresh-btn" aria-label="Обновить цитату на линейку">
+                <svg class="icon" aria-hidden="true">
+                  <use href="#icon-refresh"></use>
+                </svg>
+              </button>
+            </div>
+            <div id="quote-body" class="quote-body" aria-live="polite"></div>
+          </div>
+        </article>
+
+        <article class="content-card today-card">
+          <div class="card-head">
+            <div class="card-head__title">
+              <h3>Дежурство сегодня</h3>
+              <p class="card-subtitle" id="today-weekday-badge">Определение дня...</p>
+            </div>
+            <button type="button" class="btn-secondary btn-compact" id="edit-today-duty-btn">Изменить</button>
+          </div>
+          <div id="today-duty-body" class="today-duty-body"></div>
+
+          <div class="card-divider"></div>
+
+          <div class="teaser-block">
+            <div class="teaser-head">
+              <h3>Ближайшие дни рождения</h3>
+              <a href="#birthdays" class="text-link">Весь месяц</a>
+            </div>
+            <div id="upcoming-birthdays-body" class="upcoming-birthdays-body"></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- График дежурных (CSS Grid шахматка недели) -->
+    <section class="panel-section" id="duties" aria-labelledby="duties-heading">
+      <div class="section-head">
+        <div class="section-head__title">
+          <svg class="icon section-icon" aria-hidden="true">
+            <use href="#icon-calendar-grid"></use>
+          </svg>
+          <h2 id="duties-heading" class="section-title">График дежурных на неделю</h2>
+        </div>
+        <div class="segmented" role="group" aria-label="Количество учебных дней в неделе">
+          <button type="button" class="segmented__btn is-active" id="workdays-5-btn" data-workdays="5" aria-pressed="true">5 дней</button>
+          <button type="button" class="segmented__btn" id="workdays-6-btn" data-workdays="6" aria-pressed="false">6 дней</button>
+        </div>
+      </div>
+      <div id="duties-grid" class="duties-grid"></div>
+    </section>
+
+    <!-- Двухколоночная рабочая область (Объявления + Дни рождения) -->
+    <div class="workspace-split">
+      <section class="panel-section" id="notices" aria-labelledby="notices-heading">
+        <div class="section-head">
+          <div class="section-head__title">
+            <svg class="icon section-icon" aria-hidden="true">
+              <use href="#icon-megaphone"></use>
+            </svg>
+            <h2 id="notices-heading" class="section-title">Объявления класса</h2>
+          </div>
+          <div class="segmented" role="group" aria-label="Фильтр объявлений">
+            <button type="button" class="segmented__btn is-active" id="notices-active-btn" data-notice-filter="active" aria-pressed="true">
+              <span>Актуальные</span>
+              <span id="notices-active-count" class="count-badge">0</span>
+            </button>
+            <button type="button" class="segmented__btn" id="notices-archive-btn" data-notice-filter="archive" aria-pressed="false">
+              <span>Архив</span>
+              <span id="notices-archive-count" class="count-badge">0</span>
+            </button>
+          </div>
+        </div>
+        <div id="notices-list" class="notices-list"></div>
+      </section>
+
+      <section class="panel-section" id="birthdays" aria-labelledby="birthdays-heading">
+        <div class="section-head">
+          <div class="section-head__title">
+            <svg class="icon section-icon" aria-hidden="true">
+              <use href="#icon-gift"></use>
+            </svg>
+            <h2 id="birthdays-heading" class="section-title">Дни рождения</h2>
+          </div>
+          <div class="month-select-wrap">
+            <label class="sr-only" for="birthday-month-select">Выберите месяц</label>
+            <select id="birthday-month-select" class="month-select" aria-label="Месяц для списка дней рождения"></select>
+          </div>
+        </div>
+        <div id="birthdays-list" class="birthdays-list"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="content-card footer-card">
+      <div class="privacy-note">
+        <svg class="icon privacy-note__icon" aria-hidden="true">
+          <use href="#icon-shield-check"></use>
+        </svg>
+        <p>Политика данных: в штабе хранятся только имена, класс и даты без года рождения. Номера телефонов и домашние адреса запрещены при валидации.</p>
+      </div>
+      <div class="footer-controls">
+        <div class="footer-actions">
+          <button type="button" class="btn-secondary" id="clear-data-btn">Очистить данные</button>
+          <button type="button" class="btn-secondary" id="restore-demo-btn">Восстановить демо</button>
+        </div>
+        <p class="footer-meta">Классный штаб · P05 · Москва (55.75, 37.62) · Хранение локально в браузере</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Слой 3: Нижний плавающий док действий командира (одна общая стеклянная капсула) -->
+  <div class="dock-container">
+    <div class="lg-surface lg-regular lg-pill action-dock" data-lg-refract data-lg-bezel="18" role="toolbar" aria-label="Быстрые действия командира">
+      <div class="lg-content action-dock__inner">
+        <button type="button" class="lg-btn-prominent dock-primary-btn" id="open-notice-sheet-btn">
+          <svg class="icon" aria-hidden="true">
+            <use href="#icon-plus"></use>
+          </svg>
+          <span>Объявление</span>
+        </button>
+        <button type="button" class="lg-nav-item dock-secondary-btn" id="open-duty-sheet-btn" aria-label="Назначить дежурных">
+          <svg class="icon dock-secondary-btn__icon" aria-hidden="true">
+            <use href="#icon-users"></use>
+          </svg>
+          <span>Дежурные</span>
+        </button>
+        <button type="button" class="lg-nav-item dock-secondary-btn" id="open-birthday-sheet-btn" aria-label="Добавить день рождения">
+          <svg class="icon dock-secondary-btn__icon" aria-hidden="true">
+            <use href="#icon-gift"></use>
+          </svg>
+          <span class="label-short">ДР</span>
+          <span class="label-full">День рождения</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальная шторка форм: затемнение-сиблинг (НЕ родитель с opacity < 1, защита от Backdrop Root) -->
+  <div id="sheet-backdrop" class="sheet-backdrop" hidden></div>
+  <div id="sheet-dialog" class="sheet-shell" role="dialog" aria-modal="true" aria-labelledby="sheet-title" hidden>
+    <div class="lg-surface lg-thick sheet-panel">
+      <div class="sheet-panel__inner">
+        <div class="sheet-header">
+          <h2 id="sheet-title" class="sheet-title">Форма штаба</h2>
+          <button type="button" class="lg-icon-btn sheet-close-btn" id="sheet-close-btn" aria-label="Закрыть окно">
+            <svg class="icon" aria-hidden="true">
+              <use href="#icon-close"></use>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Форма 1: Объявление класса -->
+        <form id="notice-form" class="sheet-form" novalidate hidden>
+          <input type="hidden" id="notice-edit-id" value="">
+
+          <div class="field-group">
+            <div class="field-label-row">
+              <label class="field-label" for="notice-title-input">Заголовок объявления</label>
+              <span class="char-counter" id="notice-title-count">0 / 80</span>
+            </div>
+            <input type="text" id="notice-title-input" class="field-input" placeholder="Например: Сбор макулатуры" autocomplete="off" aria-describedby="notice-title-error">
+            <p id="notice-title-error" class="field-error" hidden></p>
+          </div>
+
+          <div class="field-group">
+            <div class="field-label-row">
+              <label class="field-label" for="notice-body-input">Текст и подробности</label>
+              <span class="char-counter" id="notice-body-count">0 / 280</span>
+            </div>
+            <textarea id="notice-body-input" class="field-input field-textarea" rows="3" placeholder="Например: Кабинет 12, принести связки до 14:00" aria-describedby="notice-body-error"></textarea>
+            <p id="notice-body-error" class="field-error" hidden></p>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="notice-date-input">Дата события</label>
+            <input type="date" id="notice-date-input" class="field-input" aria-describedby="notice-date-error">
+            <p id="notice-date-error" class="field-error" hidden></p>
+          </div>
+
+          <p class="form-privacy-hint">Без телефонов и домашних адресов — указывайте только кабинет или время.</p>
+          <button type="submit" class="lg-btn-prominent sheet-submit-btn" id="notice-submit-btn">Сохранить объявление</button>
+        </form>
+
+        <!-- Форма 2: Назначение дежурных -->
+        <form id="duty-form" class="sheet-form" novalidate hidden>
+          <div class="field-group">
+            <label class="field-label" for="duty-weekday-select">Учебный день недели</label>
+            <select id="duty-weekday-select" class="field-input" aria-describedby="duty-weekday-error">
+              <option value="1">Понедельник</option>
+              <option value="2">Вторник</option>
+              <option value="3">Среда</option>
+              <option value="4">Четверг</option>
+              <option value="5">Пятница</option>
+              <option value="6">Суббота (6-й день)</option>
+            </select>
+            <p id="duty-weekday-error" class="field-error" hidden></p>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="duty-first-input">Первый дежурный</label>
+            <input type="text" id="duty-first-input" class="field-input" placeholder="Например: Алина С." autocomplete="off" aria-describedby="duty-first-error">
+            <p id="duty-first-error" class="field-error" hidden></p>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="duty-second-input">Второй дежурный</label>
+            <input type="text" id="duty-second-input" class="field-input" placeholder="Например: Тимур К." autocomplete="off" aria-describedby="duty-second-error">
+            <p id="duty-second-error" class="field-error" hidden></p>
+          </div>
+
+          <p class="form-privacy-hint">Допустимы только имена и инициалы, без контактных номеров.</p>
+          <button type="submit" class="lg-btn-prominent sheet-submit-btn">Назначить дежурных</button>
+        </form>
+
+        <!-- Форма 3: День рождения -->
+        <form id="birthday-form" class="sheet-form" novalidate hidden>
+          <div class="field-group">
+            <label class="field-label" for="birthday-name-input">Имя и инициал фамилии</label>
+            <input type="text" id="birthday-name-input" class="field-input" placeholder="Например: София К." autocomplete="off" aria-describedby="birthday-name-error">
+            <p id="birthday-name-error" class="field-error" hidden></p>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="birthday-class-input">Класс (необязательно)</label>
+            <input type="text" id="birthday-class-input" class="field-input" placeholder="Например: 10А" autocomplete="off" aria-describedby="birthday-class-error">
+            <p id="birthday-class-error" class="field-error" hidden></p>
+          </div>
+
+          <div class="field-row-split">
+            <div class="field-group">
+              <label class="field-label" for="birthday-month-input">Месяц</label>
+              <select id="birthday-month-input" class="field-input" aria-describedby="birthday-date-error"></select>
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="birthday-day-input">Число</label>
+              <input type="number" id="birthday-day-input" class="field-input" min="1" max="31" inputmode="numeric" placeholder="21" aria-describedby="birthday-date-error">
+            </div>
+          </div>
+          <p id="birthday-date-error" class="field-error" hidden></p>
+
+          <p class="form-privacy-hint">Год рождения не запрашивается и не сохраняется.</p>
+          <button type="submit" class="lg-btn-prominent sheet-submit-btn">Добавить именинника</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="status-announcer" class="sr-only" aria-live="polite"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
