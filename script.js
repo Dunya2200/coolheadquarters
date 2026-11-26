@@ -199,8 +199,8 @@ function initLiquidGlassEngine() {
   });
 
   function bindPointerGlint(el) {
-    if (pointerBoundSet.has(el)) return;
-    pointerBoundSet.add(el);
+    if (pointerBoundEls.has(el)) return;
+    pointerBoundEls.add(el);
     let pointerRaf = 0;
     el.addEventListener(
       "pointermove",
