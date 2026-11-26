@@ -342,6 +342,194 @@ const MONTH_GENITIVE = [
 const NOTICE_TITLE_LIMIT = 80;
 const NOTICE_BODY_LIMIT = 280;
 
+/* =========================================================
+   РЕФАКТОРИНГ 1: ЧИСТАЯ ВАЛИДАЦИЯ ПРОТИВ ПЕРСОНАЛЬНЫХ ДАННЫХ
+   ========================================================= */
+
+const PII_RULES = [
+  {
+    code: "phone-pattern",
+    test: (clean) =>
+      /(\+7|8)[\s().-]*\d{3}[\s().-]*\d{3}[\s().-]*\d{2}[\s().-]*\d{2}/.test(clean),
+    message: "Уберите номер телефона: в штабе хранятся только имена и учебная информация."
+  },
+  {
+    code: "digit-sequence",
+    test: (clean) => {
+      // Исключаем легитимные даты ГГГГ-ММ-ДД и ДД.ММ.ГГГГ, чтобы не блокировать расписание
+      const withoutDates = clean.replace(/\b\d{4}-\d{2}-\d{2}\b|\b\d{2}\.\d{2}\.\d{4}\b/g, "");
+      return /(?:\d[\s()-]*){7,}/.test(withoutDates);
+    },
+    message: "Нельзя указывать длинные последовательности цифр, похожие на номер телефона."
+  },
+  {
+    code: "address-marker",
+    test: (clean) =>
+      /(?:^|[\s,;.(])(?:ул\.?|улица|просп\.?|пр-т|проспект|пер\.?|переулок|бул\.?|бульвар|шоссе|подъезд|кв\.?|квартира|дом|д\.\s*\d)/iu.test(
+        clean
+      ),
+    message: "Уберите домашний адрес: указывайте только номер кабинета или место в школе."
+  }
+];
+
+/**
+ * Проверяет строку на отсутствие телефонов и домашних адресов.
+ * @param {string} text
+ * @returns {{ ok: boolean, reason: string | null, message: string }}
+ */
+function validateNoPersonalData(text) {
+  const clean = String(text ?? "").trim();
+  if (!clean) {
+    return { ok: true, reason: null, message: "" };
+  }
+  for (const rule of PII_RULES) {
+    if (rule.test(clean)) {
+      return { ok: false, reason: rule.code, message: rule.message };
+    }
+  }
+  return { ok: true, reason: null, message: "" };
+}
+
+/**
+ * Универсальная проверка текстового поля формы (пустота, длина, анти-ПДн).
+ */
+function validateTextField(rawValue, options = {}) {
+  const value = String(rawValue ?? "").trim();
+  const { required = true, maxLength = 80, emptyMessage = "Заполните поле." } = options;
+
+  if (required && !value) {
+    return { ok: false, reason: "empty", message: emptyMessage, value };
+  }
+  if (value.length > maxLength) {
+    return {
+      ok: false,
+      reason: "too-long",
+      message: `Сократите текст до ${maxLength} символов (сейчас ${value.length}).`,
+      value
+    };
+  }
+  const piiCheck = validateNoPersonalData(value);
+  if (!piiCheck.ok) {
+    return { ...piiCheck, value };
+  }
+  return { ok: true, reason: null, message: "", value };
+}
+
+/* =========================================================
+   РЕФАКТОРИНГ 2: ЧИСТАЯ НОРМАЛИЗАЦИЯ ПРОГНОЗА ПОГОДЫ
+   ========================================================= */
+
+const DEFAULT_FALLBACK_WEATHER = { tmax: 12, code: 2 };
+
+const WMO_WEATHER_MAP = {
+  0: { label: "Ясно", icon: "icon-weather-sun" },
+  1: { label: "Преимущественно ясно", icon: "icon-weather-partly" },
+  2: { label: "Переменная облачность", icon: "icon-weather-partly" },
+  3: { label: "Пасмурно", icon: "icon-weather-cloud" },
+  45: { label: "Туман", icon: "icon-weather-cloud" },
+  48: { label: "Изморозь и туман", icon: "icon-weather-cloud" },
+  51: { label: "Лёгкая морось", icon: "icon-weather-rain" },
+  53: { label: "Умеренная морось", icon: "icon-weather-rain" },
+  55: { label: "Плотная морось", icon: "icon-weather-rain" },
+  61: { label: "Небольшой дождь", icon: "icon-weather-rain" },
+  63: { label: "Умеренный дождь", icon: "icon-weather-rain" },
+  65: { label: "Сильный дождь", icon: "icon-weather-rain" },
+  71: { label: "Небольшой снег", icon: "icon-weather-snow" },
+  73: { label: "Умеренный снег", icon: "icon-weather-snow" },
+  75: { label: "Сильный снегопад", icon: "icon-weather-snow" },
+  77: { label: "Снежная крупа", icon: "icon-weather-snow" },
+  80: { label: "Кратковременный дождь", icon: "icon-weather-rain" },
+  81: { label: "Ливень", icon: "icon-weather-rain" },
+  82: { label: "Сильный ливень", icon: "icon-weather-rain" },
+  85: { label: "Небольшой снегопад", icon: "icon-weather-snow" },
+  86: { label: "Сильный снегопад", icon: "icon-weather-snow" },
+  95: { label: "Гроза", icon: "icon-weather-storm" },
+  96: { label: "Гроза с градом", icon: "icon-weather-storm" },
+  99: { label: "Сильная гроза с градом", icon: "icon-weather-storm" }
+};
+
+function describeWmoCode(code) {
+  return (
+    WMO_WEATHER_MAP[Number(code)] || {
+      label: "Переменная облачность",
+      icon: "icon-weather-partly"
+    }
+  );
+}
+
+function buildWeatherViewModel(compact, updatedAt = "") {
+  const safeCompact = compact && typeof compact === "object" ? compact : DEFAULT_FALLBACK_WEATHER;
+  const tmax = Number.isFinite(Number(safeCompact.tmax))
+    ? Number(safeCompact.tmax)
+    : DEFAULT_FALLBACK_WEATHER.tmax;
+  const tmin =
+    safeCompact.tmin !== null &&
+    safeCompact.tmin !== undefined &&
+    Number.isFinite(Number(safeCompact.tmin))
+      ? Number(safeCompact.tmin)
+      : NaN;
+  const code = Number.isFinite(Number(safeCompact.code))
+    ? Number(safeCompact.code)
+    : DEFAULT_FALLBACK_WEATHER.code;
+  const precipProb =
+    safeCompact.precipProb !== null &&
+    safeCompact.precipProb !== undefined &&
+    Number.isFinite(Number(safeCompact.precipProb))
+      ? Number(safeCompact.precipProb)
+      : NaN;
+
+  const wmo = describeWmoCode(code);
+  const yardOk = tmax >= 5 && code <= 3 && (!Number.isFinite(precipProb) || precipProb < 40);
+
+  return {
+    tmax,
+    tmin,
+    code,
+    precipProb,
+    description: wmo.label,
+    icon: wmo.icon,
+    yardOk,
+    updatedAt
+  };
+}
+
+/**
+ * Единообразно нормализует ответ Open-Meteo и компактный фолбэк { tmax, code }.
+ * @param {object | null} rawApiData
+ * @param {object | null} fallbackData
+ * @param {string} updatedAt
+ * @returns {{ status: "ready" | "empty" | "fallback", data: object | null }}
+ */
+function normalizeWeatherForecast(rawApiData, fallbackData = DEFAULT_FALLBACK_WEATHER, updatedAt = "") {
+  const daily = rawApiData && typeof rawApiData === "object" ? rawApiData.daily : null;
+
+  if (daily && Array.isArray(daily.temperature_2m_max)) {
+    if (daily.temperature_2m_max.length === 0) {
+      return { status: "empty", data: null };
+    }
+    const idx = daily.temperature_2m_max.length > 1 ? 1 : 0;
+    const tmax = Number(daily.temperature_2m_max[idx]);
+    if (!Number.isFinite(tmax)) {
+      return { status: "empty", data: null };
+    }
+    const tmin = Array.isArray(daily.temperature_2m_min) ? Number(daily.temperature_2m_min[idx]) : NaN;
+    const code = Array.isArray(daily.weathercode) ? Number(daily.weathercode[idx]) : 2;
+    const precipProb = Array.isArray(daily.precipitation_probability_max)
+      ? Number(daily.precipitation_probability_max[idx])
+      : NaN;
+
+    return {
+      status: "ready",
+      data: buildWeatherViewModel({ tmax, tmin, code, precipProb }, updatedAt)
+    };
+  }
+
+  return {
+    status: "fallback",
+    data: buildWeatherViewModel(fallbackData || DEFAULT_FALLBACK_WEATHER, updatedAt)
+  };
+}
+
 /**
  * Документация weekday в JavaScript:
  * Date.prototype.getDay() возвращает 0 для воскресенья и 1..6 для понедельника..субботы.
@@ -1326,19 +1514,6 @@ function initApp() {
     }
   }
 
-  function hasPhoneOrAddress(value) {
-    const clean = String(value || "").trim();
-    if (!clean) return false;
-    const hasPhone =
-      /(\+7|8)[\s().-]*\d{3}[\s().-]*\d{3}[\s().-]*\d{2}[\s().-]*\d{2}/.test(clean) ||
-      /(?:\d[\s()-]*){7,}/.test(clean);
-    const hasAddress =
-      /(?:^|[\s,;.(])(?:ул\.?|улица|просп\.?|пр-т|проспект|пер\.?|переулок|бул\.?|бульвар|шоссе|подъезд|кв\.?|квартира|дом|д\.\s*\d)/iu.test(
-        clean
-      );
-    return hasPhone || hasAddress;
-  }
-
   function isValidIsoDate(value) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
     const [y, m, d] = value.split("-").map(Number);
@@ -1397,57 +1572,27 @@ function initApp() {
       clearAllFormErrors();
 
       const editId = noticeEditIdInput.value.trim();
-      const title = noticeTitleInput.value.trim();
-      const body = noticeBodyInput.value.trim();
+      const titleCheck = validateTextField(noticeTitleInput.value, {
+        required: true,
+        maxLength: NOTICE_TITLE_LIMIT,
+        emptyMessage: "Введите заголовок объявления, чтобы одноклассники сразу поняли тему."
+      });
+      const bodyCheck = validateTextField(noticeBodyInput.value, {
+        required: true,
+        maxLength: NOTICE_BODY_LIMIT,
+        emptyMessage: "Добавьте подробности объявления, например номер кабинета или время."
+      });
       const date = noticeDateInput.value.trim();
       let firstInvalid = null;
 
-      if (!title) {
-        showFieldError(
-          noticeTitleInput,
-          noticeTitleErrorEl,
-          "Введите заголовок объявления, чтобы одноклассники сразу поняли тему."
-        );
-        firstInvalid = firstInvalid || noticeTitleInput;
-      } else if (title.length > NOTICE_TITLE_LIMIT) {
-        showFieldError(
-          noticeTitleInput,
-          noticeTitleErrorEl,
-          `Сократите заголовок до ${NOTICE_TITLE_LIMIT} символов (сейчас ${title.length}).`
-        );
-        firstInvalid = firstInvalid || noticeTitleInput;
-      } else if (hasPhoneOrAddress(title)) {
-        showFieldError(
-          noticeTitleInput,
-          noticeTitleErrorEl,
-          "Уберите номер телефона или домашний адрес из заголовка."
-        );
+      if (!titleCheck.ok) {
+        showFieldError(noticeTitleInput, noticeTitleErrorEl, titleCheck.message);
         firstInvalid = firstInvalid || noticeTitleInput;
       }
-
-      if (!body) {
-        showFieldError(
-          noticeBodyInput,
-          noticeBodyErrorEl,
-          "Добавьте подробности объявления, например номер кабинета или время."
-        );
-        firstInvalid = firstInvalid || noticeBodyInput;
-      } else if (body.length > NOTICE_BODY_LIMIT) {
-        showFieldError(
-          noticeBodyInput,
-          noticeBodyErrorEl,
-          `Сократите текст объявления до ${NOTICE_BODY_LIMIT} символов (сейчас ${body.length}).`
-        );
-        firstInvalid = firstInvalid || noticeBodyInput;
-      } else if (hasPhoneOrAddress(body)) {
-        showFieldError(
-          noticeBodyInput,
-          noticeBodyErrorEl,
-          "Уберите номер телефона или домашний адрес из текста объявления."
-        );
+      if (!bodyCheck.ok) {
+        showFieldError(noticeBodyInput, noticeBodyErrorEl, bodyCheck.message);
         firstInvalid = firstInvalid || noticeBodyInput;
       }
-
       if (!isValidIsoDate(date)) {
         showFieldError(
           noticeDateInput,
@@ -1461,6 +1606,9 @@ function initApp() {
         firstInvalid.focus();
         return;
       }
+
+      const title = titleCheck.value;
+      const body = bodyCheck.value;
 
       if (editId) {
         state.notices = state.notices.map((item) =>
@@ -1498,8 +1646,16 @@ function initApp() {
       clearAllFormErrors();
 
       const weekday = Number(dutyWeekdaySelect.value);
-      const firstName = dutyFirstInput.value.trim();
-      const secondName = dutySecondInput.value.trim();
+      const firstCheck = validateTextField(dutyFirstInput.value, {
+        required: true,
+        maxLength: 40,
+        emptyMessage: "Укажите имя первого дежурного."
+      });
+      const secondCheck = validateTextField(dutySecondInput.value, {
+        required: true,
+        maxLength: 40,
+        emptyMessage: "Укажите имя второго дежурного (на каждый день назначается пара)."
+      });
       let firstInvalid = null;
 
       if (!Number.isInteger(weekday) || weekday < 1 || weekday > 6) {
@@ -1510,50 +1666,12 @@ function initApp() {
         );
         firstInvalid = firstInvalid || dutyWeekdaySelect;
       }
-
-      if (!firstName) {
-        showFieldError(
-          dutyFirstInput,
-          dutyFirstErrorEl,
-          "Укажите имя первого дежурного."
-        );
-        firstInvalid = firstInvalid || dutyFirstInput;
-      } else if (firstName.length > 40) {
-        showFieldError(
-          dutyFirstInput,
-          dutyFirstErrorEl,
-          "Сократите имя первого дежурного до 40 символов."
-        );
-        firstInvalid = firstInvalid || dutyFirstInput;
-      } else if (hasPhoneOrAddress(firstName)) {
-        showFieldError(
-          dutyFirstInput,
-          dutyFirstErrorEl,
-          "Нельзя указывать телефон или адрес в имени дежурного."
-        );
+      if (!firstCheck.ok) {
+        showFieldError(dutyFirstInput, dutyFirstErrorEl, firstCheck.message);
         firstInvalid = firstInvalid || dutyFirstInput;
       }
-
-      if (!secondName) {
-        showFieldError(
-          dutySecondInput,
-          dutySecondErrorEl,
-          "Укажите имя второго дежурного (на каждый день назначается пара)."
-        );
-        firstInvalid = firstInvalid || dutySecondInput;
-      } else if (secondName.length > 40) {
-        showFieldError(
-          dutySecondInput,
-          dutySecondErrorEl,
-          "Сократите имя второго дежурного до 40 символов."
-        );
-        firstInvalid = firstInvalid || dutySecondInput;
-      } else if (hasPhoneOrAddress(secondName)) {
-        showFieldError(
-          dutySecondInput,
-          dutySecondErrorEl,
-          "Нельзя указывать телефон или адрес в имени дежурного."
-        );
+      if (!secondCheck.ok) {
+        showFieldError(dutySecondInput, dutySecondErrorEl, secondCheck.message);
         firstInvalid = firstInvalid || dutySecondInput;
       }
 
@@ -1563,7 +1681,9 @@ function initApp() {
       }
 
       state.duties = state.duties.map((entry) =>
-        entry.weekday === weekday ? { weekday, names: [firstName, secondName] } : entry
+        entry.weekday === weekday
+          ? { weekday, names: [firstCheck.value, secondCheck.value] }
+          : entry
       );
       if (weekday === 6 && state.settings.workdays === 5) {
         state.settings.workdays = 6;
@@ -1582,53 +1702,36 @@ function initApp() {
       event.preventDefault();
       clearAllFormErrors();
 
-      const name = birthdayNameInput.value.trim();
-      const className = birthdayClassInput.value.trim();
+      const nameCheck = validateTextField(birthdayNameInput.value, {
+        required: true,
+        maxLength: 40,
+        emptyMessage: "Введите имя и инициал одноклассника (например, София К.)."
+      });
+      const classCheck = validateTextField(birthdayClassInput.value, {
+        required: false,
+        maxLength: 10
+      });
       const month = Number(birthdayMonthInput.value);
       const day = Number(birthdayDayInput.value.trim());
       const maxDays = getDaysInMonth(month);
       let firstInvalid = null;
 
-      if (!name) {
-        showFieldError(
-          birthdayNameInput,
-          birthdayNameErrorEl,
-          "Введите имя и инициал одноклассника (например, София К.)."
-        );
-        firstInvalid = firstInvalid || birthdayNameInput;
-      } else if (name.length > 40) {
-        showFieldError(
-          birthdayNameInput,
-          birthdayNameErrorEl,
-          "Сократите имя до 40 символов."
-        );
-        firstInvalid = firstInvalid || birthdayNameInput;
-      } else if (hasPhoneOrAddress(name)) {
-        showFieldError(
-          birthdayNameInput,
-          birthdayNameErrorEl,
-          "Уберите номер телефона или домашний адрес из имени."
-        );
+      if (!nameCheck.ok) {
+        showFieldError(birthdayNameInput, birthdayNameErrorEl, nameCheck.message);
         firstInvalid = firstInvalid || birthdayNameInput;
       }
-
-      if (className.length > 10) {
-        showFieldError(
-          birthdayClassInput,
-          birthdayClassErrorEl,
-          "Сократите обозначение класса до 10 символов (например, 10А)."
-        );
-        firstInvalid = firstInvalid || birthdayClassInput;
-      } else if (className && hasPhoneOrAddress(className)) {
-        showFieldError(
-          birthdayClassInput,
-          birthdayClassErrorEl,
-          "В поле класса нельзя указывать телефон или адрес."
-        );
+      if (!classCheck.ok) {
+        showFieldError(birthdayClassInput, birthdayClassErrorEl, classCheck.message);
         firstInvalid = firstInvalid || birthdayClassInput;
       }
-
-      if (!Number.isInteger(month) || month < 1 || month > 12 || !Number.isInteger(day) || day < 1 || day > maxDays) {
+      if (
+        !Number.isInteger(month) ||
+        month < 1 ||
+        month > 12 ||
+        !Number.isInteger(day) ||
+        day < 1 ||
+        day > maxDays
+      ) {
         showFieldError(
           birthdayDayInput,
           birthdayDateErrorEl,
@@ -1645,8 +1748,8 @@ function initApp() {
       const md = `${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
       state.birthdays.push({
         id: `b-${Date.now()}`,
-        name,
-        className,
+        name: nameCheck.value,
+        className: classCheck.value,
         md
       });
       selectedBirthdayMonth = month;
@@ -1655,7 +1758,7 @@ function initApp() {
       birthdayForm.reset();
       renderAll();
       closeSheet();
-      announce(`Добавлен день рождения: ${name}`);
+      announce(`Добавлен день рождения: ${nameCheck.value}`);
     });
   }
 
@@ -1664,7 +1767,6 @@ function initApp() {
      ========================================================= */
 
   // Фолбэк строго по спецификации P05 + резерв цитат на случай полной недоступности сети
-  const FALLBACK_WEATHER = { tmax: 12, code: 2 };
   const FALLBACK_QUOTES = [
     "Порядок в классе начинается с одного понятного расписания.",
     "Маленькие ежедневные договорённости экономят часы всей команде.",
@@ -1680,37 +1782,6 @@ function initApp() {
 
   const quoteBodyEl = document.getElementById("quote-body");
   const quoteRefreshBtn = document.getElementById("quote-refresh-btn");
-
-  const WMO_MAP = {
-    0: { label: "Ясно", icon: "icon-weather-sun" },
-    1: { label: "Преимущественно ясно", icon: "icon-weather-partly" },
-    2: { label: "Переменная облачность", icon: "icon-weather-partly" },
-    3: { label: "Пасмурно", icon: "icon-weather-cloud" },
-    45: { label: "Туман", icon: "icon-weather-cloud" },
-    48: { label: "Изморозь и туман", icon: "icon-weather-cloud" },
-    51: { label: "Лёгкая морось", icon: "icon-weather-rain" },
-    53: { label: "Умеренная морось", icon: "icon-weather-rain" },
-    55: { label: "Плотная морось", icon: "icon-weather-rain" },
-    61: { label: "Небольшой дождь", icon: "icon-weather-rain" },
-    63: { label: "Умеренный дождь", icon: "icon-weather-rain" },
-    65: { label: "Сильный дождь", icon: "icon-weather-rain" },
-    71: { label: "Небольшой снег", icon: "icon-weather-snow" },
-    73: { label: "Умеренный снег", icon: "icon-weather-snow" },
-    75: { label: "Сильный снегопад", icon: "icon-weather-snow" },
-    77: { label: "Снежная крупа", icon: "icon-weather-snow" },
-    80: { label: "Кратковременный дождь", icon: "icon-weather-rain" },
-    81: { label: "Ливень", icon: "icon-weather-rain" },
-    82: { label: "Сильный ливень", icon: "icon-weather-rain" },
-    85: { label: "Небольшой снегопад", icon: "icon-weather-snow" },
-    86: { label: "Сильный снегопад", icon: "icon-weather-snow" },
-    95: { label: "Гроза", icon: "icon-weather-storm" },
-    96: { label: "Гроза с градом", icon: "icon-weather-storm" },
-    99: { label: "Сильная гроза с градом", icon: "icon-weather-storm" }
-  };
-
-  function describeWmoCode(code) {
-    return WMO_MAP[Number(code)] || { label: "Переменная облачность", icon: "icon-weather-partly" };
-  }
 
   function formatSignedTemp(temp) {
     const rounded = Math.round(Number(temp));
@@ -1859,27 +1930,6 @@ function initApp() {
     }
   }
 
-  function buildWeatherViewFromCompact(compact) {
-    const tmax = Number.isFinite(Number(compact?.tmax)) ? Number(compact.tmax) : FALLBACK_WEATHER.tmax;
-    const tmin = Number.isFinite(Number(compact?.tmin)) ? Number(compact.tmin) : NaN;
-    const code = Number.isFinite(Number(compact?.code)) ? Number(compact.code) : FALLBACK_WEATHER.code;
-    const precipProb = Number.isFinite(Number(compact?.precipProb))
-      ? Number(compact.precipProb)
-      : NaN;
-    const wmo = describeWmoCode(code);
-    const yardOk = tmax >= 5 && code <= 3 && (!Number.isFinite(precipProb) || precipProb < 40);
-    return {
-      tmax,
-      tmin,
-      code,
-      precipProb,
-      description: wmo.label,
-      icon: wmo.icon,
-      yardOk,
-      updatedAt: formatCurrentTime()
-    };
-  }
-
   async function loadWeather() {
     if (weatherRefreshBtn) weatherRefreshBtn.disabled = true;
     renderWeatherState({ status: "loading" });
@@ -1894,38 +1944,18 @@ function initApp() {
         throw new Error(`Open-Meteo HTTP ${response.status}`);
       }
       const raw = await response.json();
-      const daily = raw && raw.daily;
-      if (!daily || !Array.isArray(daily.temperature_2m_max) || daily.temperature_2m_max.length === 0) {
-        renderWeatherState({ status: "empty" });
-        return;
-      }
-
-      const idx = daily.temperature_2m_max.length > 1 ? 1 : 0;
-      const tmax = Number(daily.temperature_2m_max[idx]);
-      const tmin = Array.isArray(daily.temperature_2m_min) ? Number(daily.temperature_2m_min[idx]) : NaN;
-      const code = Array.isArray(daily.weathercode) ? Number(daily.weathercode[idx]) : 2;
-      const precipProb = Array.isArray(daily.precipitation_probability_max)
-        ? Number(daily.precipitation_probability_max[idx])
-        : NaN;
-
-      if (!Number.isFinite(tmax)) {
-        renderWeatherState({ status: "empty" });
-        return;
-      }
-
-      renderWeatherState({
-        status: "ready",
-        data: buildWeatherViewFromCompact({ tmax, tmin, code, precipProb })
-      });
+      const normalized = normalizeWeatherForecast(
+        raw,
+        DEFAULT_FALLBACK_WEATHER,
+        formatCurrentTime()
+      );
+      renderWeatherState(normalized);
     } catch (err) {
       console.warn("Сбой запроса Open-Meteo, переключаемся на фолбэк:", err);
       const fileFallback = await loadLocalFallbackJson();
       const compact =
-        fileFallback && fileFallback.weather ? fileFallback.weather : FALLBACK_WEATHER;
-      renderWeatherState({
-        status: "fallback",
-        data: buildWeatherViewFromCompact(compact)
-      });
+        fileFallback && fileFallback.weather ? fileFallback.weather : DEFAULT_FALLBACK_WEATHER;
+      renderWeatherState(normalizeWeatherForecast(null, compact, formatCurrentTime()));
     } finally {
       if (weatherRefreshBtn) weatherRefreshBtn.disabled = false;
     }
@@ -1973,4 +2003,13 @@ function initApp() {
 
 if (typeof document !== "undefined") {
   document.addEventListener("DOMContentLoaded", initApp);
+}
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    validateNoPersonalData,
+    validateTextField,
+    normalizeWeatherForecast,
+    describeWmoCode
+  };
 }
