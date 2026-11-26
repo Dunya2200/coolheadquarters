@@ -1663,6 +1663,15 @@ function initApp() {
      ПОГОДА НА ЗАВТРА (OPEN-METEO) И ЦИТАТА (ADVICE SLIP)
      ========================================================= */
 
+  // Фолбэк строго по спецификации P05 + резерв цитат на случай полной недоступности сети
+  const FALLBACK_WEATHER = { tmax: 12, code: 2 };
+  const FALLBACK_QUOTES = [
+    "Порядок в классе начинается с одного понятного расписания.",
+    "Маленькие ежедневные договорённости экономят часы всей команде.",
+    "Хорошая подготовка к утру делает спокойным весь учебный день."
+  ];
+  let fallbackQuoteCursor = 0;
+
   const weatherBodyEl = document.getElementById("weather-body");
   const weatherUpdatedLabelEl = document.getElementById("weather-updated-label");
   const weatherRefreshBtn = document.getElementById("weather-refresh-btn");
@@ -1840,6 +1849,37 @@ function initApp() {
     quoteBodyEl.append(quoteText, quoteSource);
   }
 
+  async function loadLocalFallbackJson() {
+    try {
+      const response = await fetch("data/fallback.json", { cache: "no-store" });
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function buildWeatherViewFromCompact(compact) {
+    const tmax = Number.isFinite(Number(compact?.tmax)) ? Number(compact.tmax) : FALLBACK_WEATHER.tmax;
+    const tmin = Number.isFinite(Number(compact?.tmin)) ? Number(compact.tmin) : NaN;
+    const code = Number.isFinite(Number(compact?.code)) ? Number(compact.code) : FALLBACK_WEATHER.code;
+    const precipProb = Number.isFinite(Number(compact?.precipProb))
+      ? Number(compact.precipProb)
+      : NaN;
+    const wmo = describeWmoCode(code);
+    const yardOk = tmax >= 5 && code <= 3 && (!Number.isFinite(precipProb) || precipProb < 40);
+    return {
+      tmax,
+      tmin,
+      code,
+      precipProb,
+      description: wmo.label,
+      icon: wmo.icon,
+      yardOk,
+      updatedAt: formatCurrentTime()
+    };
+  }
+
   async function loadWeather() {
     if (weatherRefreshBtn) weatherRefreshBtn.disabled = true;
     renderWeatherState({ status: "loading" });
@@ -1873,25 +1913,19 @@ function initApp() {
         return;
       }
 
-      const wmo = describeWmoCode(code);
-      const yardOk = tmax >= 5 && code <= 3 && (!Number.isFinite(precipProb) || precipProb < 40);
-
       renderWeatherState({
         status: "ready",
-        data: {
-          tmax,
-          tmin,
-          code,
-          precipProb,
-          description: wmo.label,
-          icon: wmo.icon,
-          yardOk,
-          updatedAt: formatCurrentTime()
-        }
+        data: buildWeatherViewFromCompact({ tmax, tmin, code, precipProb })
       });
     } catch (err) {
-      console.warn("Сбой запроса Open-Meteo:", err);
-      renderWeatherState({ status: "error" });
+      console.warn("Сбой запроса Open-Meteo, переключаемся на фолбэк:", err);
+      const fileFallback = await loadLocalFallbackJson();
+      const compact =
+        fileFallback && fileFallback.weather ? fileFallback.weather : FALLBACK_WEATHER;
+      renderWeatherState({
+        status: "fallback",
+        data: buildWeatherViewFromCompact(compact)
+      });
     } finally {
       if (weatherRefreshBtn) weatherRefreshBtn.disabled = false;
     }
@@ -1914,8 +1948,15 @@ function initApp() {
       }
       renderQuoteState({ status: "ready", text });
     } catch (err) {
-      console.warn("Сбой запроса Advice Slip:", err);
-      renderQuoteState({ status: "empty" });
+      console.warn("Сбой запроса Advice Slip, переключаемся на фолбэк:", err);
+      const fileFallback = await loadLocalFallbackJson();
+      const list =
+        fileFallback && Array.isArray(fileFallback.quotes) && fileFallback.quotes.length > 0
+          ? fileFallback.quotes.map((q) => q.text).filter(Boolean)
+          : FALLBACK_QUOTES;
+      const text = list[fallbackQuoteCursor % list.length] || FALLBACK_QUOTES[0];
+      fallbackQuoteCursor += 1;
+      renderQuoteState({ status: "fallback", text });
     } finally {
       if (quoteRefreshBtn) quoteRefreshBtn.disabled = false;
     }
