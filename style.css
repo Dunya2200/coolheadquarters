@@ -1068,6 +1068,13 @@ html[data-theme="dark"] .theme-icon-sun {
   color: var(--text-muted);
 }
 
+.birthday-item__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .empty-state {
   background: var(--bg-card);
   border: 1px dashed var(--border-strong);
